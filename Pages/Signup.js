@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, Alert } from 'react-native';
-import Navbar from '../components/Navbar';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  KeyboardAvoidingView,
+  Alert,
+} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useNavigation } from '@react-navigation/native';
 
-const InputFields = ({ label, placeholder, value, onChangeText, secureTextEntry, style }) => (
-  <View style={styles.inputContainer}>
-    <Text style={styles.label}>{label}</Text>
-    <TextInput
-      style={[styles.input, style]}
-      placeholder={placeholder}
-      placeholderTextColor="#aaa"
-      value={value}
-      onChangeText={onChangeText}
-      secureTextEntry={secureTextEntry}
-    />
-  </View>
-);
-
 export default function Signup() {
   const navigation = useNavigation();
 
+  // State hooks
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
@@ -34,6 +30,7 @@ export default function Signup() {
     level2: { price: -1, active: false },
     level3: { price: -1, active: false },
   });
+
   const [isStartTimePickerVisible, setStartTimePickerVisible] = useState(false);
   const [isEndTimePickerVisible, setEndTimePickerVisible] = useState(false);
 
@@ -44,43 +41,83 @@ export default function Signup() {
           setLatitude(position.coords.latitude);
           setLongitude(position.coords.longitude);
         },
-        error => console.log(error)
+        error => {
+          console.log(error);
+        }
       );
     }
   }, []);
 
-  const handleSignup = () => {
-    if (!email || !password || !locationAddress || !availableStartTime || !availableEndTime) {
+
+  const handleSignup = async () => {
+    if (
+      !email ||
+      !password ||
+      !locationAddress ||
+      !availableStartTime ||
+      !availableEndTime ||
+      !latitude ||
+      !longitude ||
+      !prices
+    ) {
       Alert.alert('Error', 'Please fill all the fields.');
       return;
     }
-    console.log({
-      email,
-      password,
-      locationAddress,
-      latitude,
-      longitude,
-      availableStartTime,
-      availableEndTime,
-      prices,
-    });
-    navigation.navigate('Home');
+  
+    const payload = {
+      Email: email,
+      Password: password,
+      Location: locationAddress,
+      Latitude: latitude,
+      Longitude: longitude,
+      AvailableStartTime: availableStartTime,
+      AvailableEndTime: availableEndTime,
+      Prices: prices, // Ensure prices is in the required format (e.g., an object or array)
+    };
+  
+    try {
+      const response = await fetch('http://localhost/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.message || 'Something went wrong.');
+        return;
+      }
+  
+      const data = await response.json();
+      Alert.alert('Success', 'Charging station registered successfully!');
+      console.log('Response data:', data);
+  
+      navigation.navigate('Home'); // Navigate to home screen
+    } catch (error) {
+      console.error('Signup Error:', error);
+      Alert.alert('Error', 'Unable to connect to the server.');
+    }
   };
+  
 
   const toggleChargeType = (type) => {
     setPrices(prevPrices => {
-      const newPrices = { ...prevPrices };
-      newPrices[type].active = !newPrices[type].active;
-      if (!newPrices[type].active) newPrices[type].price = -1;
-      return newPrices;
+      const updatedPrices = { ...prevPrices };
+      updatedPrices[type].active = !updatedPrices[type].active;
+      if (!updatedPrices[type].active) {
+        updatedPrices[type].price = -1;
+      }
+      return updatedPrices;
     });
   };
 
   const setChargePrice = (type, price) => {
     setPrices(prevPrices => {
-      const newPrices = { ...prevPrices };
-      newPrices[type].price = price;
-      return newPrices;
+      const updatedPrices = { ...prevPrices };
+      updatedPrices[type].price = price;
+      return updatedPrices;
     });
   };
 
@@ -101,15 +138,33 @@ export default function Signup() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : null}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Sign Up</Text>
-        </View>
+        <Text style={styles.header}>Station Registration</Text>
 
-        <InputFields label="Station Email" placeholder="Enter Station Email" value={email} onChangeText={setEmail} style={styles.fullWidthInput} />
-        <InputFields label="Password" placeholder="Enter Password" value={password} onChangeText={setPassword} secureTextEntry style={styles.fullWidthInput} />
+        {/* Email and Password */}
+        <TextInput
+          style={styles.input}
+          placeholder="Station Email"
+          placeholderTextColor="#aaa"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-        <InputFields label="Location Address" placeholder="Enter Location Address" value={locationAddress} onChangeText={setLocationAddress} style={styles.fullWidthInput} />
-
+        {/* Location */}
+        <TextInput
+          style={styles.input}
+          placeholder="Location Address"
+          placeholderTextColor="#aaa"
+          value={locationAddress}
+          onChangeText={setLocationAddress}
+        />
         <View style={styles.mapContainer}>
           <MapView
             style={styles.map}
@@ -129,13 +184,63 @@ export default function Signup() {
           </MapView>
         </View>
 
-        <View style={styles.availableTimeContainer}>
-          <InputFields label="Available Start Time" placeholder="Select Start Time" value={availableStartTime} onChangeText={() => {}} style={styles.fullWidthInput} />
-          <InputFields label="Available End Time" placeholder="Select End Time" value={availableEndTime} onChangeText={() => {}} style={styles.fullWidthInput} />
-        </View>
+        {/* Available Time */}
+        <Text style={styles.label}>Available Start Time</Text>
+        <TouchableOpacity onPress={showStartTimePicker}>
+          <TextInput
+            style={styles.input}
+            value={availableStartTime}
+            placeholder="Select Start Time"
+            placeholderTextColor="#aaa"
+            editable={false}
+          />
+        </TouchableOpacity>
+        <Text style={styles.label}>Available End Time</Text>
+        <TouchableOpacity onPress={showEndTimePicker}>
+          <TextInput
+            style={styles.input}
+            value={availableEndTime}
+            placeholder="Select End Time"
+            placeholderTextColor="#aaa"
+            editable={false}
+          />
+        </TouchableOpacity>
+        <DateTimePickerModal
+          isVisible={isStartTimePickerVisible}
+          mode="time"
+          onConfirm={handleStartTimeConfirm}
+          onCancel={hideStartTimePicker}
+        />
+        <DateTimePickerModal
+          isVisible={isEndTimePickerVisible}
+          mode="time"
+          onConfirm={handleEndTimeConfirm}
+          onCancel={hideEndTimePicker}
+        />
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSignup}>
-          <Text style={styles.saveButtonText}>Save</Text>
+        {/* Charge Types */}
+        <Text style={styles.chargeHeading}>Charge Type Pricing</Text>
+        {Object.keys(prices).map((type) => (
+          <View key={type} style={styles.chargeContainer}>
+            <TouchableOpacity onPress={() => toggleChargeType(type)}>
+              <Text style={styles.chargeName}>{type.toUpperCase()}</Text>
+            </TouchableOpacity>
+            {prices[type].active && (
+              <TextInput
+                style={styles.input}
+                placeholder="Enter Price"
+                placeholderTextColor="#aaa"
+                keyboardType="numeric"
+                value={prices[type].price === -1 ? '' : prices[type].price.toString()}
+                onChangeText={(text) => setChargePrice(type, parseFloat(text) || -1)}
+              />
+            )}
+          </View>
+        ))}
+
+        {/* Submit Button */}
+        <TouchableOpacity style={styles.button} onPress={handleSignup}>
+          <Text style={styles.buttonText}>Register</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -146,85 +251,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#110F0F',
-    paddingHorizontal: 20,
+    padding: 20,
   },
   scrollViewContent: {
     flexGrow: 1,
-    justifyContent: 'space-between',
   },
   header: {
-    alignItems: 'center',
-    marginTop: 50,
-  },
-  headerText: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  inputs: {
-    marginTop: 30,
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 15,
+    color: '#000',
   },
   mapContainer: {
-    height: 250,
-    borderRadius: 10,
+    height: 200,
+    marginVertical: 15,
+    borderRadius: 8,
     overflow: 'hidden',
-    marginTop: 20,
   },
   map: {
     width: '100%',
     height: '100%',
   },
-  availableTimeContainer: {
-    marginTop: 30,
-  },
   label: {
-    fontSize: 18,
     color: '#fff',
-    marginBottom: 10,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    marginBottom: 20,
     fontSize: 16,
-    color: '#000',
-  },
-  chargeTypes: {
-    marginTop: 30,
+    marginBottom: 5,
   },
   chargeHeading: {
-    fontSize: 22,
+    fontSize: 20,
     color: '#fff',
-    marginBottom: 20,
+    marginVertical: 15,
+  },
+  chargeContainer: {
+    marginBottom: 15,
   },
   chargeName: {
+    fontSize: 16,
+    color: '#fff',
+    marginBottom: 5,
+  },
+  button: {
+    backgroundColor: '#3a8dff',
+    borderRadius: 8,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  buttonText: {
     fontSize: 18,
     color: '#fff',
-  },
-  availableContainer: {
-    marginBottom: 20,
-  },
-  priceInput: {
-    marginTop: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#000',
-  },
-  saveButton: {
-    backgroundColor: '#3a8dff',
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 30,
-  },
-  saveButtonText: {
-    fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
   },
 });

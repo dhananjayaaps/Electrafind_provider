@@ -1,118 +1,149 @@
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Text, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import Navbar from '../components/Navbar';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function ScanQR() {
-    
-    const handleUser = () => {
-        console.log('User clicked');
+export default function StartChargingSession() {
+  const [qrCode, setQrCode] = useState(null);
+  const [qrCodeText, setQrCodeText] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const checkQrCodeKey = async () => {
+      try {
+        const storedQrCodeText = await AsyncStorage.getItem('qrCodeKey');
+        if (storedQrCodeText) {
+          // Key exists in shared preferences
+          setQrCodeText(storedQrCodeText);
+        } else {
+          // Key not found, fetch from backend
+          fetchQrCodeFromBackend();
+        }
+      } catch (error) {
+        console.error('Error checking QR code key:', error);
+      }
     };
 
-    return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : null } keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 100}>
-            <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                <View style={styles.container}>
-                    <View style={styles.header}>
-                        <TouchableOpacity style={styles.users} onPress={handleUser}>
-                            <Image source={require('../assets/user 1.png')} style={styles.user}/>
-                        </TouchableOpacity>
-                        <Text style={styles.text}>MY QR CODE</Text>
-                    </View>
+    checkQrCodeKey();
+  }, []);
 
-                    <Image source={require('../assets/QR.png')} style={styles.qrImage}/>
+  const fetchQrCodeFromBackend = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('https://your-backend-api-url.com/generate-qr-code', {
+        method: 'GET',
+      });
 
-                    <View style={styles.QRtext}>
-                        <Image source={require('../assets/Camera.png')} style={styles.cameraIcon}/>
-                        <Text style={styles.scanText}>Scan QR Code</Text>
-                       
-                    </View>
+      if (!response.ok) {
+        throw new Error('Failed to fetch QR code');
+      }
 
-                    <View style={styles.orContainer}>
-                        <Text style={styles.orText}>OR</Text>
-                        <View style={styles.code}>
-                            <Text style={styles.codeText}>25qWE522@</Text>
-                        </View>
-                    </View>
-                    
-                </View>
-            </ScrollView>
-            <Navbar/>
-        </KeyboardAvoidingView>
-    );
+      const data = await response.json();
+      setQrCode(data.qrCodeUrl);
+      setQrCodeText(data.qrCodeKey);
+
+      // Save the QR code key in shared preferences
+      await AsyncStorage.setItem('qrCodeKey', data.qrCodeKey);
+    } catch (error) {
+      Alert.alert('Error', 'Unable to fetch QR code from the server.');
+
+      // testing data
+      setQrCode("https://qrcg-free-editor.qr-code-generator.com/latest/assets/images/websiteQRCode_noFrame.png");
+      setQrCodeText("DGTHYL");
+
+      console.error('Error fetching QR code:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.headerText}>Start Charging Session</Text>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#08A045" />
+      ) : (
+        <>
+          {qrCode ? (
+            <Image source={{ uri: qrCode }} style={styles.qrCodeImage} />
+          ) : (
+            <Text style={styles.infoText}>
+              No QR code found. Please wait while we fetch your QR code.
+            </Text>
+          )}
+
+          {qrCodeText && (
+            <Text style={styles.qrCodeText}>
+              Your Code: <Text style={styles.codeHighlight}>{qrCodeText}</Text>
+            </Text>
+          )}
+        </>
+      )}
+
+      <TouchableOpacity style={styles.button} onPress={fetchQrCodeFromBackend}>
+        <Text style={styles.buttonText}>Refresh QR Code</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#110F0F',
-    },
-    header: {
-        alignItems: 'center',
-        marginTop: 50,
-        marginBottom: 30,
-    },
-    user: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginBottom: 10,
-        left: 150,
-    },
-    text: {
-        color: '#FFFFFF',
-        fontSize: 25,
-        fontWeight: 'bold',
-    },
-    qrImage: {
-        width: 350,
-        height: 360,
-        alignSelf: 'center', 
-        marginTop: 20,
-    },
-    QRtext: {
-        backgroundColor: '#ADF2CB',
-        width: 250,
-        height: 50, 
-        alignSelf: 'center',
-        marginTop: 40,
-        //paddingVertical: 5,
-        alignItems: 'center',
-        justifyContent: 'center', 
-        borderRadius: 20,
-        flexDirection: 'row', 
-    },
-    cameraIcon: {
-        width: 30,
-        height: 30,
-        marginRight: 10, 
-    },
-    scanText: {
-        color: '#000000',
-        fontSize: 18,
-        fontWeight: 'bold',
-        left: 10,
-    },
-
-    orContainer: {
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    orText: {
-        color: '#ffffff', 
-        fontSize: 24,
-        marginLeft: 2, 
-        
-    },
-
-    code: {
-        backgroundColor: '#F6E7E7',
-        width: 150,
-        height: 30, 
-        alignSelf: 'center',
-        marginTop: 20,
-        alignItems: 'center',
-        justifyContent: 'center', 
-        
-    }
+  container: {
+    flex: 1,
+    backgroundColor: '#110F0F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  headerText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  qrCodeImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+    borderRadius: 10,
+  },
+  infoText: {
+    color: '#888',
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  qrCodeText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  codeHighlight: {
+    color: '#08A045',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  button: {
+    backgroundColor: '#08A045',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+    width: '80%',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });
