@@ -91,16 +91,11 @@ export default function Chargings() {
               <View style={styles.line}></View>
               <Text style={styles.text3}>Total Amount</Text>
               <Text style={styles.text2}>Rs 150</Text>
-              
             </View>
 
             <TouchableOpacity style={styles.stop} onPress={stopTimer}>
                 <Text style={styles.stopText}>Stop Charging</Text>
             </TouchableOpacity>
- 
-        
-            
-
 
         </View>
     </ScrollView>

@@ -10,6 +10,9 @@ import Chargings from './Pages/Chargings';
 import Earnings from './Pages/Earnings';
 import Login from './Pages/Login';
 import Signup from './Pages/Signup';
+import ChargingSessions from './Pages/sessions';
+import SessionDetails from './Pages/SessionDetails';
+
 
 export default function App() {
   
@@ -19,14 +22,21 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
-        <Stack.Screen name="Charging" component={ScanQR}/>
+      <Stack.Screen name="Signup" component={Signup} />
+      {/* <Stack.Screen name="chargings" component={Chargings} /> */}
+        <Stack.Screen name="Earnings" component={Earnings} />
+        <Stack.Screen name="allsessions" component={ChargingSessions} />
         <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Signup" component={Signup} />
+        
+        
+        <Stack.Screen name="SessionDetails" component={SessionDetails} />
+        
+        <Stack.Screen name="Charging" component={ScanQR}/>
+        
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Home1" component={Home1} />
-        <Stack.Screen name="success" component={Success}/>
-        <Stack.Screen name="chargings" component={Chargings} />
-        <Stack.Screen name="Earnings" component={Earnings} />
+        
+        
         
       </Stack.Navigator>
     </NavigationContainer>
