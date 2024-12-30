@@ -1,39 +1,61 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { API_URL, API_KEY } from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native';
 
 export default function Login() {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const saveToLocalStorage = async (data) => {
+    try {
+      await AsyncStorage.setItem('userToken', data.token);
+      await AsyncStorage.setItem('userName', data.Name);
+      await AsyncStorage.setItem('userEmail', data.Email);
+      await AsyncStorage.setItem('userImageUrl', data.ImageUrl);
+      console.log('User data saved to local storage.');
+    } catch (error) {
+      console.error('Error saving data to local storage:', error);
+    }
+  };
+
   const handleLogin = async () => {
     if (email === '' || password === '') {
       Alert.alert('Error', 'Please enter both email and password.');
       return;
     }
-
     try {
-      const response = await fetch('https://your-backend-api-url.com/login', {
+      const response = await fetch(`${API_URL}/stations/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ Email: email, Password: password }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         Alert.alert('Error', errorData.message || 'Invalid email or password.');
         return;
       }
-
+  
       const data = await response.json();
       Alert.alert('Success', 'Logged in successfully!');
       console.log('Response data:', data);
-
-      // Navigate to the Home screen or any other screen
-      navigation.navigate('Home');
+  
+      // Save data to AsyncStorage
+      await saveToLocalStorage(data);
+  
+      // Reset the navigation stack
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        })
+      );
     } catch (error) {
       console.error('Login Error:', error);
       Alert.alert('Error', 'Unable to connect to the server.');

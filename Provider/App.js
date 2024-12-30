@@ -22,12 +22,11 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
+      <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Signup" component={Signup} />
       {/* <Stack.Screen name="chargings" component={Chargings} /> */}
         <Stack.Screen name="Earnings" component={Earnings} />
         <Stack.Screen name="allsessions" component={ChargingSessions} />
-        <Stack.Screen name="Login" component={Login} />
-        
         
         <Stack.Screen name="SessionDetails" component={SessionDetails} />
         

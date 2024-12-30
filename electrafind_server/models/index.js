@@ -85,7 +85,8 @@ marketPlace.belongsTo(user, { foreignKey: 'AddedByUserID' });
 
 (async () => {
     try {
-        await sequelize.sync({ force: true }); // Use force: true only in development (drops and recreates tables)
+        await sequelize.sync();
+        // await sequelize.sync({ force: true });
         console.log('Database synchronized successfully!');
     } catch (error) {
         console.error('Error synchronizing database:', error);
