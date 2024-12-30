@@ -23,20 +23,15 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
       <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Charging" component={ScanQR}/>
       <Stack.Screen name="Signup" component={Signup} />
       {/* <Stack.Screen name="chargings" component={Chargings} /> */}
-        <Stack.Screen name="Earnings" component={Earnings} />
-        <Stack.Screen name="allsessions" component={ChargingSessions} />
-        
-        <Stack.Screen name="SessionDetails" component={SessionDetails} />
-        
-        <Stack.Screen name="Charging" component={ScanQR}/>
-        
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="Home1" component={Home1} />
-        
-        
-        
+      <Stack.Screen name="Earnings" component={Earnings} />
+      <Stack.Screen name="allsessions" component={ChargingSessions} />
+      <Stack.Screen name="SessionDetails" component={SessionDetails} />
+      <Stack.Screen name="Home" component={Home} />
+      <Stack.Screen name="Home1" component={Home1} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );

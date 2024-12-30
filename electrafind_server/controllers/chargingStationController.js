@@ -47,7 +47,6 @@ exports.registerStation = async (req, res) => {
       }
     }
 
-    // Validate ImageUrl
     const urlRegex = /^(http|https):\/\/[^ "]+$/;
     if (!urlRegex.test(ImageUrl)) {
       return res.status(400).json({ message: 'Invalid ImageUrl format.' });
@@ -57,24 +56,19 @@ exports.registerStation = async (req, res) => {
     const availableStartTime = moment(AvailableStartTime, ["h:mm:ss A"]).format("HH:mm:ss");
     const availableEndTime = moment(AvailableEndTime, ["h:mm:ss A"]).format("HH:mm:ss");
 
-    // Check if email already exists
     const existingStation = await chargingStation.findOne({ where: { Email } });
     if (existingStation) {
       return res.status(400).json({ message: 'Email already in use.' });
     }
 
-    // Generate a 6-digit random code
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
-    // Generate QR code for the verification code
     const qrCodeFileName = `${verificationCode}.png`;
     const qrCodePath = path.join(__dirname, '../uploads', qrCodeFileName);
     await QRCode.toFile(qrCodePath, verificationCode.toString());
 
-    // Construct the QR Code URL
     const qrCodeUrl = `${req.protocol}://${req.get('host')}/api/uploads/${qrCodeFileName}`;
 
-    // Save the new station
     const newStation = await chargingStation.create({
       Name,
       Location,
@@ -84,7 +78,7 @@ exports.registerStation = async (req, res) => {
       Longitude,
       AvailableStartTime: availableStartTime,
       AvailableEndTime: availableEndTime,
-      Prices: JSON.stringify(Prices), // Store as a JSON string
+      Prices: JSON.stringify(Prices),
       ImageUrl,
       VerificationCode: verificationCode,
       QRCode: qrCodeUrl,
@@ -121,7 +115,7 @@ exports.loginStation = async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    res.json({ message: 'Login successful', token, Name: station.Name, Email: station.Email, ImageUrl: station.ImageUrl, QRCode: station.QRCode, VerificationCode: station.VerificationCode }); 
+    res.json({ message: 'Login successful', token, ProviderId: station.StationID ,Name: station.Name, Email: station.Email, ImageUrl: station.ImageUrl, QRCode: station.QRCode, VerificationCode: station.VerificationCode }); 
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

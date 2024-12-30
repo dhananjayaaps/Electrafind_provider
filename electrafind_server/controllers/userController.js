@@ -23,11 +23,28 @@ exports.getUserById = async (req, res) => {
 
 // Create a new user
 exports.createUser = async (req, res) => {
+  const { UserType, Name, Email, Password, PhoneNumber, Address } = req.body;
+
   try {
-    const newUser = await user.create(req.body);
-    res.status(201).json(newUser);
-  } catch (error) { 
-    res.status(500).json({ error: error.message });
+    const newUser = await user.create({
+      UserType,
+      Name,
+      Email,
+      PasswordHash: Password, // Pass the plain password (it will be hashed automatically)
+      PhoneNumber,
+      Address,
+    });
+
+    res.status(201).json({
+      message: 'User created successfully',
+      userId: newUser.UserID,
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({
+      message: 'An error occurred while creating the user.',
+      error: error.message,
+    });
   }
 };
 
