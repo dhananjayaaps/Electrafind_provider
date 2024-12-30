@@ -9,17 +9,20 @@ import {
   Platform,
   KeyboardAvoidingView,
   Alert,
+  Button,
+  Image
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useNavigation } from '@react-navigation/native';
-import * as ImagePicker from 'react-native-image-picker';
-import { launchImageLibrary } from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
+import { API_URL, API_KEY } from '@env';
 
 export default function Signup() {
   const navigation = useNavigation();
 
   // State hooks
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
@@ -33,11 +36,10 @@ export default function Signup() {
     level3: { price: -1, active: false },
   });
 
-  const [imageUri, setImageUri] = useState(null); // Store selected image URI
-  const [uploadedImageUrl, setUploadedImageUrl] = useState(null); // Store uploaded image URL
-
   const [isStartTimePickerVisible, setStartTimePickerVisible] = useState(false);
   const [isEndTimePickerVisible, setEndTimePickerVisible] = useState(false);
+
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -53,83 +55,32 @@ export default function Signup() {
     }
   }, []);
 
-
-  // const handleImagePicker = async () => {
-  //   const result = await launchImageLibrary({
-  //     mediaType: 'photo',
-  //     quality: 0.8,
-  //   });
-
-  //   if (result.didCancel) {
-  //     console.log('User cancelled image picker');
-  //   } else if (result.errorCode) {
-  //     console.error('ImagePicker Error: ', result.errorMessage);
-  //   } else {
-  //     const { uri } = result.assets[0];
-  //     setImageUri(uri);
-  //     await uploadImage(uri);
-  //   }
-  // };
-
-  const options = {
-    title: 'Select Avatar',
-    customButtons: [{ name: 'fb', title: 'Choose Photo from Facebook' }],
-    storageOptions: {
-      skipBackup: true,
-      path: 'images',
-    },
-  };
-  
-   handleGalleryClick = () => {
-   ImagePicker.launchImageLibrary(options, (response) => {
-    if (response.didCancel) {
-      console.log('User cancelled image picker');
-    } else if (response.error) {
-      console.log('ImagePicker Error: ', response.error);
-    } else if (response.customButton) {
-      console.log('User tapped custom button: ', response.customButton);
-    } else {
-      const source = { uri: response.uri };
-      this.setState({
-        avatarSource: source,
-      });
-    }
-  });
-  };
-
-  const uploadImage = async (uri) => {
-    const formData = new FormData();
-    formData.append('file', {
-      uri,
-      type: 'image/jpeg', // Adjust if needed
-      name: 'upload.jpg',
-    });
-
-    try {
-      const response = await fetch('http://localhost/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        Alert.alert('Error', 'Failed to upload image');
-        return;
+  useEffect(() => {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Sorry, we need camera roll permissions to make this work!');
       }
+    })();
+  }, []);
 
-      const data = await response.json();
-      setUploadedImageUrl(data.url); // Assuming your API returns the image URL in `data.url`
-      Alert.alert('Success', 'Image uploaded successfully!');
-    } catch (error) {
-      console.error('Image Upload Error:', error);
-      Alert.alert('Error', 'Unable to upload image.');
+  const pickImage = async () => {
+    // console.log(API_URL)
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only show images
+      allowsEditing: true, // Enable cropping
+      quality: 1, // Image quality (1 is best)
+      aspect: [4, 3], // Image aspect ratio
+    });
+  
+    if (!result.canceled) {
+      setImage(result.assets[0].uri); // Set the selected image URI
     }
   };
 
   const handleSignup = async () => {
     if (
+      !name ||
       !email ||
       !password ||
       !locationAddress ||
@@ -138,51 +89,80 @@ export default function Signup() {
       !latitude ||
       !longitude ||
       !prices ||
-      !uploadedImageUrl
+      !image
     ) {
       Alert.alert('Error', 'Please fill all the fields and upload an image.');
       return;
     }
-
-    const payload = {
-      Email: email,
-      Password: password,
-      Location: locationAddress,
-      Latitude: latitude,
-      Longitude: longitude,
-      AvailableStartTime: availableStartTime,
-      AvailableEndTime: availableEndTime,
-      Prices: prices,
-      ImageUrl: uploadedImageUrl, // Include the image URL
-    };
-
+  
     try {
-      const response = await fetch('http://localhost/register', {
+      // Step 1: Upload the image and get its URL
+      const formData = new FormData();
+      formData.append('file', {
+        uri: image,
+        type: 'image/jpeg', // Adjust type as needed
+        name: 'station_image.jpg',
+      });
+  
+      const imageUploadResponse = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+  
+      if (!imageUploadResponse.ok) {
+        const errorData = await imageUploadResponse.json();
+        Alert.alert('Error', errorData.message || 'Failed to upload image.');
+        return;
+      }
+  
+      const imageUploadData = await imageUploadResponse.json();
+      const uploadedImageUrl = imageUploadData.url;
+
+      // Step 2: Prepare the registration payload
+      const payload = {
+        Name: name,
+        Email: email,
+        Password: password,
+        Location: locationAddress,
+        Latitude: latitude,
+        Longitude: longitude,
+        AvailableStartTime: availableStartTime,
+        AvailableEndTime: availableEndTime,
+        Prices: prices,
+        ImageUrl: uploadedImageUrl, // Include the image URL
+      };
+  
+      // console.log('Registration Payload:', payload);
+      console.log('API URL:', API_URL);
+      const response = await fetch(`${API_URL}/stations/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         Alert.alert('Error', errorData.message || 'Something went wrong.');
         return;
       }
-
+  
       const data = await response.json();
       Alert.alert('Success', 'Charging station registered successfully!');
       console.log('Response data:', data);
-
-      navigation.navigate('Home'); // Navigate to home screen
+  
+      navigation.navigate('Home'); // Navigate to the home screen
     } catch (error) {
       console.error('Signup Error:', error);
       Alert.alert('Error', 'Unable to connect to the server.');
     }
   };
   
-
+  
   const toggleChargeType = (type) => {
     setPrices(prevPrices => {
       const updatedPrices = { ...prevPrices };
@@ -221,7 +201,17 @@ export default function Signup() {
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Text style={styles.header}>Station Registration</Text>
 
-        {/* Email and Password */}
+        {/* Name Email and Password */}
+        <Text style={styles.label}>Station Name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Station Name"
+          placeholderTextColor="#aaa"
+          value={name}
+          onChangeText={setName}
+        />
+
+        <Text style={styles.label}>Station Email</Text>
         <TextInput
           style={styles.input}
           placeholder="Station Email"
@@ -229,6 +219,7 @@ export default function Signup() {
           value={email}
           onChangeText={setEmail}
         />
+        <Text style={styles.label}>Password</Text>
         <TextInput
           style={styles.input}
           placeholder="Password"
@@ -239,6 +230,7 @@ export default function Signup() {
         />
 
         {/* Location */}
+        <Text style={styles.label}>Address</Text>
         <TextInput
           style={styles.input}
           placeholder="Location Address"
@@ -246,6 +238,7 @@ export default function Signup() {
           value={locationAddress}
           onChangeText={setLocationAddress}
         />
+        <Text style={styles.label}>Pick Location</Text>
         <View style={styles.mapContainer}>
           <MapView
             style={styles.map}
@@ -321,15 +314,9 @@ export default function Signup() {
 
         {/* Image Upload */}
         <Text style={styles.label}>Upload Station Image</Text>
-        {/* <TouchableOpacity style={styles.button} onPress={handleImagePicker}>
-          <Text style={styles.buttonText}>Select Image</Text>
-        </TouchableOpacity>
-        {imageUri && <Image source={{ uri: imageUri }} style={styles.imagePreview} />}
-        {uploadedImageUrl && <Text style={styles.successText}>Image uploaded successfully!</Text>}
- */}
-        <TouchableOpacity onPress={this.handleGalleryClick}>
-        <Text>Open Gallery</Text>
-        </TouchableOpacity>
+
+        <Button title="Pick an Image" onPress={pickImage} />
+        {image && <Image source={{ uri: image }} style={{ height: 200, marginTop:10 }} />}
 
         {/* Submit Button */}
         <TouchableOpacity style={styles.button} onPress={handleSignup}>
