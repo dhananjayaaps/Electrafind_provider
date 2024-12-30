@@ -64,11 +64,24 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    VerificationCode: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    QRCode: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
   });
 
-  // Hash the password before creating a record
-  ChargingStation.beforeCreate(async (station) => {
+   ChargingStation.beforeCreate(async (station) => {
     station.Password = await bcrypt.hash(station.Password, 10);
+  });
+
+    ChargingStation.beforeSave(async (station) => {
+    if (typeof station.Prices !== 'string') {
+      station.Prices = JSON.stringify(station.Prices);
+    }
   });
 
   return ChargingStation;

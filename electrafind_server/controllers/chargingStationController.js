@@ -1,6 +1,8 @@
 const { chargingStation, TimeSlot } = require('../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const QRCode = require('qrcode');
+const path = require('path');
 
 exports.registerStation = async (req, res) => {
   try {
@@ -22,8 +24,9 @@ exports.registerStation = async (req, res) => {
       !Name || !Location || !Email || !Password || !Latitude ||
       !Longitude || !AvailableStartTime || !AvailableEndTime || !ImageUrl
     ) {
-      return res.status(400).json({ message: 'All fields are required. Reqeired field is' });
+      return res.status(400).json({ message: 'All fields are required.' });
     }
+
     console.log(req.body);
 
     // Validate Email
@@ -51,7 +54,6 @@ exports.registerStation = async (req, res) => {
     }
 
     const moment = require('moment');
-
     const availableStartTime = moment(AvailableStartTime, ["h:mm:ss A"]).format("HH:mm:ss");
     const availableEndTime = moment(AvailableEndTime, ["h:mm:ss A"]).format("HH:mm:ss");
 
@@ -60,6 +62,17 @@ exports.registerStation = async (req, res) => {
     if (existingStation) {
       return res.status(400).json({ message: 'Email already in use.' });
     }
+
+    // Generate a 6-digit random code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000);
+
+    // Generate QR code for the verification code
+    const qrCodeFileName = `${verificationCode}.png`;
+    const qrCodePath = path.join(__dirname, '../uploads', qrCodeFileName);
+    await QRCode.toFile(qrCodePath, verificationCode.toString());
+
+    // Construct the QR Code URL
+    const qrCodeUrl = `${req.protocol}://${req.get('host')}/api/uploads/${qrCodeFileName}`;
 
     // Save the new station
     const newStation = await chargingStation.create({
@@ -73,22 +86,12 @@ exports.registerStation = async (req, res) => {
       AvailableEndTime: availableEndTime,
       Prices: JSON.stringify(Prices), // Store as a JSON string
       ImageUrl,
+      VerificationCode: verificationCode,
+      QRCode: qrCodeUrl,
     });
 
     res.status(201).json({
-      message: 'Station registered successfully.',
-      station: {
-        StationID: newStation.StationID,
-        Name: newStation.Name,
-        Location: newStation.Location,
-        Email: newStation.Email,
-        Latitude: newStation.Latitude,
-        Longitude: newStation.Longitude,
-        AvailableStartTime: newStation.AvailableStartTime,
-        AvailableEndTime: newStation.AvailableEndTime,
-        Prices: JSON.parse(newStation.Prices), // Parse for response
-        ImageUrl: newStation.ImageUrl,
-      },
+      message: 'Station registered successfully.'
     });
   } catch (error) {
     console.error('Error registering station:', error);
@@ -118,7 +121,7 @@ exports.loginStation = async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    res.json({ message: 'Login successful', token, Name: station.Name, Email: station.Email, ImageUrl: station.ImageUrl }); 
+    res.json({ message: 'Login successful', token, Name: station.Name, Email: station.Email, ImageUrl: station.ImageUrl, QRCode: station.QRCode, VerificationCode: station.VerificationCode }); 
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

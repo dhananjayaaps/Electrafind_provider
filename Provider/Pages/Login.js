@@ -16,6 +16,8 @@ export default function Login() {
       await AsyncStorage.setItem('userName', data.Name);
       await AsyncStorage.setItem('userEmail', data.Email);
       await AsyncStorage.setItem('userImageUrl', data.ImageUrl);
+      await AsyncStorage.setItem('VerificationCode', data.VerificationCode);
+      await AsyncStorage.setItem('QRCode', data.QRCode);
       console.log('User data saved to local storage.');
     } catch (error) {
       console.error('Error saving data to local storage:', error);

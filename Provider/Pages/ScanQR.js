@@ -15,54 +15,24 @@ export default function StartChargingSession() {
   const [qrCodeText, setQrCodeText] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const checkQrCodeKey = async () => {
-      try {
-        const storedQrCodeText = await AsyncStorage.getItem('qrCodeKey');
-        if (storedQrCodeText) {
-          // Key exists in shared preferences
-          setQrCodeText(storedQrCodeText);
-        } else {
-          // Key not found, fetch from backend
-          fetchQrCodeFromBackend();
-        }
-      } catch (error) {
-        console.error('Error checking QR code key:', error);
-      }
-    };
-
-    checkQrCodeKey();
-  }, []);
-
-  const fetchQrCodeFromBackend = async () => {
-    setLoading(true);
+  const getUserData = async () => {
     try {
-      const response = await fetch('https://your-backend-api-url.com/generate-qr-code', {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch QR code');
+      const QRCode = await AsyncStorage.getItem('QRCode');
+      const VerificationCode = await AsyncStorage.getItem('VerificationCode');
+  
+      if (QRCode) {
+        setQrCode(QRCode);
+        setQrCodeText(VerificationCode);
       }
-
-      const data = await response.json();
-      setQrCode(data.qrCodeUrl);
-      setQrCodeText(data.qrCodeKey);
-
-      // Save the QR code key in shared preferences
-      await AsyncStorage.setItem('qrCodeKey', data.qrCodeKey);
     } catch (error) {
-      Alert.alert('Error', 'Unable to fetch QR code from the server.');
-
-      // testing data
-      setQrCode("https://qrcg-free-editor.qr-code-generator.com/latest/assets/images/websiteQRCode_noFrame.png");
-      setQrCodeText("DGTHYL");
-
-      console.error('Error fetching QR code:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error retrieving data from local storage:', error);
     }
   };
+
+  useEffect(() => {
+    getUserData();
+  }, []);    
+
 
   return (
     <View style={styles.container}>
@@ -88,7 +58,7 @@ export default function StartChargingSession() {
         </>
       )}
 
-      <TouchableOpacity style={styles.button} onPress={fetchQrCodeFromBackend}>
+      <TouchableOpacity style={styles.button} onPress={getUserData}>
         <Text style={styles.buttonText}>Refresh QR Code</Text>
       </TouchableOpacity>
     </View>
