@@ -1,12 +1,47 @@
-const { ChargingSession, Vehicle, ChargingStation } = require('../models');
+const { chargingSession, user, ChargingStation, sequelize } = require('../models');
+var Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 
-// Get all charging sessions
 exports.getAllChargingSessions = async (req, res) => {
+  console.log('provider:', req.provider.StationID);
   try {
-    const sessions = await ChargingSession.findAll({ include: [Vehicle, ChargingStation] });
-    res.json(sessions);
+    const sessions = await chargingSession.findAll({
+      where: {
+        Status: {
+          [Op.in]: ['New', 'Ongoing'],
+        },
+        providerID: req.provider.StationID,
+      },
+      include: [
+        {
+          model: user,
+          as: 'user',
+          attributes: ['Name'],
+        },
+      ],
+    });
+
+    console.log('sessions:', sessions);
+
+    if (sessions.length === 0) {
+      return res.status(404).json({ message: 'No sessions found.' });
+    }
+
+    const sessionData = sessions.map(session => ({
+      sessionId: session.SessionID,
+      userName: session.user.Name,
+      chargeType: session.ChargeType,
+      status: session.Status,
+      startTime: session.StartTime,
+      endTime: session.EndTime,
+      cost: session.Cost,
+      totalTime: session.TotalTime,
+    }));
+
+    res.status(200).json(sessionData);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching sessions:', error);
+    res.status(500).json({ message: 'An error occurred while fetching sessions.' });
   }
 };
 
@@ -31,7 +66,6 @@ exports.createChargingSession = async (req, res) => {
   }
 };
 
-// Update a charging session
 exports.updateChargingSession = async (req, res) => {
   try {
     const updated = await ChargingSession.update(req.body, { where: { ChargingSessionID: req.params.id } });

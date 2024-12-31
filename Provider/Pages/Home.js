@@ -24,7 +24,7 @@ export default function Home() {
         navigation.navigate('Charging');
       }
       else if(item.name === 'LOCATION'){
-        navigation.navigate('success');
+        navigation.navigate('allsessions');
       }
       else if(item.name === 'EARNINGS'){
         navigation.navigate('Earnings');

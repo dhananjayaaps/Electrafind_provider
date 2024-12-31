@@ -1,7 +1,6 @@
 const { Sequelize } = require('sequelize');
 
-
-
+// Import model definitions
 const UserModel = require('./user');
 const VehicleModel = require('./vehicle');
 const BatteryModel = require('./battery');
@@ -20,90 +19,74 @@ const sequelize = new Sequelize('electrafind', 'postgres', 'password', {
 });
 
 // Initialize Models
-const user = UserModel(sequelize);
-const vehicle = VehicleModel(sequelize);
-const battery = BatteryModel(sequelize);
-const chargingStation = ChargingStationModel(sequelize);
-const timeSlot = TimeSlotModel(sequelize);
-const booking = BookingModel(sequelize);
-const chargingSession = ChargingSessionModel(sequelize);
-const transaction = TransactionModel(sequelize);
-const rating = RatingModel(sequelize);
-const marketPlace = MarketplaceModel(sequelize);
+const models = {
+  user: UserModel(sequelize),
+  vehicle: VehicleModel(sequelize),
+  battery: BatteryModel(sequelize),
+  chargingStation: ChargingStationModel(sequelize),
+  timeSlot: TimeSlotModel(sequelize),
+  booking: BookingModel(sequelize),
+  chargingSession: ChargingSessionModel(sequelize),
+  transaction: TransactionModel(sequelize),
+  rating: RatingModel(sequelize),
+  marketPlace: MarketplaceModel(sequelize),
+};
 
+// Set up associations
+Object.keys(models).forEach((modelName) => {
+  if (models[modelName].associate) {
+    models[modelName].associate(models);
+  }
+});
 
-// User ↔ Vehicle (One-to-Many)
-user.hasMany(vehicle, { foreignKey: 'UserID' });
-vehicle.belongsTo(user, { foreignKey: 'UserID' });
+// Define associations explicitly
+models.user.hasMany(models.vehicle, { foreignKey: 'UserID' });
+models.vehicle.belongsTo(models.user, { foreignKey: 'UserID' });
 
-// Vehicle ↔ Battery (One-to-One)
-vehicle.belongsTo(battery, { foreignKey: 'BatteryID' });
-battery.hasOne(vehicle, { foreignKey: 'BatteryID' });
+models.vehicle.belongsTo(models.battery, { foreignKey: 'BatteryID' });
+models.battery.hasOne(models.vehicle, { foreignKey: 'BatteryID' });
 
-// User ↔ ChargingStation (One-to-Many for Station Hosts)
-user.hasMany(chargingStation, { foreignKey: 'HostUserID' });
-chargingStation.belongsTo(user, { foreignKey: 'HostUserID' });
+models.user.hasMany(models.chargingStation, { foreignKey: 'HostUserID' });
+models.chargingStation.belongsTo(models.user, { foreignKey: 'HostUserID' });
 
-// ChargingStation ↔ TimeSlot (One-to-Many)
-chargingStation.hasMany(timeSlot, { foreignKey: 'StationID' });
-timeSlot.belongsTo(chargingStation, { foreignKey: 'StationID' });
+models.chargingStation.hasMany(models.timeSlot, { foreignKey: 'StationID' });
+models.timeSlot.belongsTo(models.chargingStation, { foreignKey: 'StationID' });
 
-// User ↔ Booking (One-to-Many)
-user.hasMany(booking, { foreignKey: 'UserID' });
-booking.belongsTo(user, { foreignKey: 'UserID' });
+models.user.hasMany(models.booking, { foreignKey: 'UserID' });
+models.booking.belongsTo(models.user, { foreignKey: 'UserID' });
 
-// TimeSlot ↔ Booking (One-to-Many)
-timeSlot.hasMany(booking, { foreignKey: 'SlotID' });
-booking.belongsTo(timeSlot, { foreignKey: 'SlotID' });
+models.timeSlot.hasMany(models.booking, { foreignKey: 'SlotID' });
+models.booking.belongsTo(models.timeSlot, { foreignKey: 'SlotID' });
 
-// Booking ↔ ChargingSession (One-to-One)
-booking.hasOne(chargingSession, { foreignKey: 'BookingID' });
-chargingSession.belongsTo(booking, { foreignKey: 'BookingID' });
+models.booking.hasOne(models.chargingSession, { foreignKey: 'BookingID' });
+models.chargingSession.belongsTo(models.booking, { foreignKey: 'BookingID' });
 
-// ChargingSession ↔ Transaction (One-to-One)
-chargingSession.hasOne(transaction, { foreignKey: 'SessionID' });
-transaction.belongsTo(chargingSession, { foreignKey: 'SessionID' });
+models.chargingSession.hasOne(models.transaction, { foreignKey: 'SessionID' });
+models.transaction.belongsTo(models.chargingSession, { foreignKey: 'SessionID' });
 
-// User ↔ Transaction (One-to-Many)
-user.hasMany(transaction, { foreignKey: 'UserID' });
-transaction.belongsTo(user, { foreignKey: 'UserID' });
+models.user.hasMany(models.transaction, { foreignKey: 'UserID' });
+models.transaction.belongsTo(models.user, { foreignKey: 'UserID' });
 
-// User ↔ Rating (One-to-Many)
-user.hasMany(rating, { foreignKey: 'UserID' });
-rating.belongsTo(user, { foreignKey: 'UserID' });
+models.user.hasMany(models.rating, { foreignKey: 'UserID' });
+models.rating.belongsTo(models.user, { foreignKey: 'UserID' });
 
-// ChargingStation ↔ Rating (One-to-Many)
-chargingStation.hasMany(rating, { foreignKey: 'StationID' });
-rating.belongsTo(chargingStation, { foreignKey: 'StationID' });
+models.chargingStation.hasMany(models.rating, { foreignKey: 'StationID' });
+models.rating.belongsTo(models.chargingStation, { foreignKey: 'StationID' });
 
-// User ↔ Marketplace (One-to-Many for Product Listings)
-user.hasMany(marketPlace, { foreignKey: 'AddedByUserID' });
-marketPlace.belongsTo(user, { foreignKey: 'AddedByUserID' });
+models.user.hasMany(models.marketPlace, { foreignKey: 'AddedByUserID' });
+models.marketPlace.belongsTo(models.user, { foreignKey: 'AddedByUserID' });
 
-
-// const { sequelize } = require('./models'); // Adjust path as needed
-
+// Synchronize database
 (async () => {
-    try {
-        await sequelize.sync();
-        // await sequelize.sync({ force: true });
-        console.log('Database synchronized successfully!');
-    } catch (error) {
-        console.error('Error synchronizing database:', error);
-    }
+  try {
+    await sequelize.sync();
+    console.log('Database synchronized successfully!');
+  } catch (error) {
+    console.error('Error synchronizing database:', error);
+  }
 })();
 
 module.exports = {
-    sequelize,
-    user,
-    vehicle,
-    battery,
-    chargingStation,
-    timeSlot,
-    booking,
-    chargingSession,
-    transaction,
-    rating,
-    marketPlace,
-  };
-  
+  sequelize,
+  ...models,
+};

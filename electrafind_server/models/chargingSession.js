@@ -34,27 +34,27 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'users', // Reference the 'users' table
-        key: 'UserID', // Foreign key reference to 'UserID'
+        model: 'users',
+        key: 'UserID',
       },
     },
     providerID: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'chargingStations', // Reference the 'chargingStations' table
-        key: 'StationID', // Foreign key reference to 'StationID'
+        model: 'chargingStations',
+        key: 'StationID',
       },
     },
   });
 
   // Define associations
   ChargingSession.associate = (models) => {
-    ChargingSession.belongsTo(models.User, {
+    ChargingSession.belongsTo(models.user, {
       foreignKey: 'userId',
       as: 'user',
     });
-    ChargingSession.belongsTo(models.ChargingStation, {
+    ChargingSession.belongsTo(models.chargingStation, {
       foreignKey: 'providerID',
       as: 'provider',
     });

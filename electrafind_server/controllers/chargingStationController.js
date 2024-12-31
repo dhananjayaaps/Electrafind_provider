@@ -112,7 +112,7 @@ exports.loginStation = async (req, res) => {
     const token = jwt.sign(
       { id: station.StationID, email: station.Email },
       process.env.JWT_SECRET || 'secret',
-      { expiresIn: '1h' }
+      { expiresIn: '12h' }
     );
 
     res.json({ message: 'Login successful', token, ProviderId: station.StationID ,Name: station.Name, Email: station.Email, ImageUrl: station.ImageUrl, QRCode: station.QRCode, VerificationCode: station.VerificationCode }); 

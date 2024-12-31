@@ -1,49 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '@env';
 
 export default function ChargingSessions() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
 
-  // Mock data for testing
-  const mockSessions = [
-    {
-      sessionId: 1,
-      userName: 'John Doe',
-      chargeType: 'Type A',
-      status: 'Ongoing',
-      endTime: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes from now
-    },
-    {
-      sessionId: 2,
-      userName: 'Jane Smith',
-      chargeType: 'Type B',
-      status: 'Completed',
-      endTime: null, // No remaining time for completed sessions
-    },
-    {
-      sessionId: 3,
-      userName: 'Alex Brown',
-      chargeType: 'Type C',
-      status: 'Ongoing',
-      endTime: new Date(Date.now() + 2 * 60 * 1000).toISOString(), // 2 minutes from now
-    },
-    {
-        sessionId: 4,
-        userName: 'John Doe',
-        chargeType: 'Type A',
-        status: 'New',
-        endTime: null, // 5 minutes from now
-    },
-  ];
-
   const fetchSessions = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockSessions), 1000);
-    });
+    try {
+      // Retrieve the token from AsyncStorage
+      const token = await AsyncStorage.getItem('userToken');
+
+      if (!token) {
+        throw new Error('No token found in AsyncStorage');
+      }
+
+      // Make the API call with the token in the Authorization header
+      const response = await fetch(`${API_URL}/sessions`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      return [];
+    }
   };
+
+
+  // const fetchSessions = async () => {
+  //   return new Promise((resolve) => {
+  //     setTimeout(() => resolve(mockSessions), 1000);
+  //   });
+  // };
 
   useEffect(() => {
     const loadSessions = async () => {
