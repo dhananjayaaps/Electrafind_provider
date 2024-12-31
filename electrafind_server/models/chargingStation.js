@@ -51,14 +51,8 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
     Prices: {
-      type: DataTypes.TEXT, // JSON stored as string
+      type: DataTypes.JSONB, // JSON stored as string
       allowNull: false,
-      get() {
-        return JSON.parse(this.getDataValue('Prices')); // Parse JSON on retrieval
-      },
-      set(value) {
-        this.setDataValue('Prices', JSON.stringify(value)); // Convert to JSON string before saving
-      },
     },
     ImageUrl: {
       type: DataTypes.STRING,
@@ -76,12 +70,6 @@ module.exports = (sequelize) => {
 
    ChargingStation.beforeCreate(async (station) => {
     station.Password = await bcrypt.hash(station.Password, 10);
-  });
-
-    ChargingStation.beforeSave(async (station) => {
-    if (typeof station.Prices !== 'string') {
-      station.Prices = JSON.stringify(station.Prices);
-    }
   });
 
   return ChargingStation;

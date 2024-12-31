@@ -3,7 +3,6 @@ var Sequelize = require('sequelize');
 const Op = Sequelize.Op;
 
 exports.getAllChargingSessions = async (req, res) => {
-  console.log('provider:', req.provider.StationID);
   try {
     const sessions = await chargingSession.findAll({
       where: {
@@ -20,8 +19,6 @@ exports.getAllChargingSessions = async (req, res) => {
         },
       ],
     });
-
-    console.log('sessions:', sessions);
 
     if (sessions.length === 0) {
       return res.status(404).json({ message: 'No sessions found.' });

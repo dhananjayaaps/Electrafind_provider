@@ -1,18 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import Svg, { Circle } from 'react-native-svg';  // Import Svg and Circle
+import Svg, { Circle } from 'react-native-svg';
+import { API_URL, API_KEY } from '@env'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SessionDetails({ route, navigation }) {
   const { session } = route.params;
-  const [remainingTime, setRemainingTime] = useState(0); // Remaining time in seconds
-  const [elapsedTime, setElapsedTime] = useState(0); // Elapsed time in seconds
+  const [remainingTime, setRemainingTime] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [cost, setCost] = useState(0);
+  const [sessionId, setSessionId] = useState(session.id);
   const [status, setStatus] = useState(session.status);
   const [chargeType, setChargeType] = useState(null);
-  const [selectedTime, setSelectedTime] = useState(''); // Time in minutes
-  const ratePerMinute = 0.5; // Cost per minute
-  const totalTimeInSeconds = 0; // Initialize total time in seconds (based on user input)
+  const [selectedTime, setSelectedTime] = useState('');
+  const [chargingPrices, setChargingPrices] = useState(null);
+  const ratePerMinute = 0.5;
+  const totalTimeInSeconds = 0;
+
+  useEffect(() => {
+    // Fetch charging types and prices from the API
+    const fetchChargingData = async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        const response = await fetch(`${API_URL}/stations/mystation`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,  // Add API key to request headers if needed
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const data = await response.json();
+        setChargingPrices(data.Prices);  // Store the fetched prices
+      } catch (error) {
+        console.error('Error fetching charging data:', error);
+        Alert.alert('Error', 'Failed to fetch charging data.');
+      }
+    };
+
+    fetchChargingData();
+  }, []);
 
   const handleStartSession = () => {
     if (!chargeType) {
@@ -24,11 +55,11 @@ export default function SessionDetails({ route, navigation }) {
       return;
     }
 
-    const totalTime = parseInt(selectedTime) * 60; // Convert minutes to seconds
+    const totalTime = parseInt(selectedTime) * 60;
     setStatus('Ongoing');
     setRemainingTime(totalTime);
     setElapsedTime(0);
-    setCost(0); // Reset cost
+    setCost(0);
     Alert.alert('Session Started', `Charging session started with ${chargeType} for ${selectedTime} minutes.`);
   };
 
@@ -38,7 +69,7 @@ export default function SessionDetails({ route, navigation }) {
     if (status === 'Ongoing' && remainingTime > 0) {
       timer = setInterval(() => {
         setRemainingTime((prevTime) => {
-          const newTime = prevTime - 1; // Decrease remaining time by 1 second
+          const newTime = prevTime - 1;
           if (newTime <= 0) {
             clearInterval(timer);
             setStatus('Completed');
@@ -47,18 +78,17 @@ export default function SessionDetails({ route, navigation }) {
         });
 
         setElapsedTime((prevElapsedTime) => {
-          const newElapsedTime = prevElapsedTime + 1; // Increase elapsed time by 1 second
-          setCost((newElapsedTime / 60) * ratePerMinute); // Calculate the cost
+          const newElapsedTime = prevElapsedTime + 1;
+          setCost((newElapsedTime / 60) * ratePerMinute);
           return newElapsedTime;
         });
-      }, 1000); // Update every second
+      }, 1000);
     }
 
-    return () => clearInterval(timer); // Cleanup on component unmount
+    return () => clearInterval(timer);
   }, [status, remainingTime]);
 
   const getProgress = () => {
-    // Calculate percentage based on elapsed time
     if (elapsedTime && remainingTime) {
       return (elapsedTime / (elapsedTime + remainingTime)) * 100;
     }
@@ -73,7 +103,7 @@ export default function SessionDetails({ route, navigation }) {
         onPress: () => {
           setStatus('Completed');
           Alert.alert('Session Stopped', `Total cost: $${cost.toFixed(2)}`);
-          navigation.goBack(); // Navigate back
+          navigation.goBack();
         },
       },
     ]);
@@ -97,9 +127,15 @@ export default function SessionDetails({ route, navigation }) {
               style={styles.picker}
             >
               <Picker.Item label="Select Charger Type" value={null} />
-              <Picker.Item label="Type A" value="Type A" />
-              <Picker.Item label="Type B" value="Type B" />
-              <Picker.Item label="Type C" value="Type C" />
+              {chargingPrices && chargingPrices.level1.active && (
+                <Picker.Item label="Level 1" value="Level 1" />
+              )}
+              {chargingPrices && chargingPrices.level2.active && (
+                <Picker.Item label="Level 2" value="Level 2" />
+              )}
+              {chargingPrices && chargingPrices.level3.active && (
+                <Picker.Item label="Level 3" value="Level 3" />
+              )}
             </Picker>
             <TextInput
               style={styles.input}
@@ -133,7 +169,7 @@ export default function SessionDetails({ route, navigation }) {
                   stroke="#08A045"
                   strokeWidth="15"
                   fill="none"
-                  strokeDasharray={2 * Math.PI * 90} // Circumference
+                  strokeDasharray={2 * Math.PI * 90}
                   strokeDashoffset={2 * Math.PI * 90 - (getProgress() / 100) * 2 * Math.PI * 90}
                 />
               </Svg>
@@ -214,7 +250,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   stopButton: {
-    backgroundColor: '#FF4500',
+    backgroundColor: '#E63946',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -224,22 +260,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  timerText: {
-    fontSize: 48,
-    color: '#fff',
-    fontWeight: 'bold',
+  circleContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 20,
   },
   progressText: {
     position: 'absolute',
-    top: '40%',
-    left: '40%',
+    color: '#FFFFFF',
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
   },
-  circleContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
+  timerText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    textAlign: 'center',
+    marginTop: 10,
   },
 });

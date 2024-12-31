@@ -170,3 +170,17 @@ exports.deleteStation = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getMyStation = async (req, res) => {
+  try {
+    const station = req.provider;
+
+    if (station.Prices && typeof station.Prices === 'string') {
+      station.Prices = JSON.parse(station.Prices); 
+    }
+
+    res.json(station);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -19,6 +19,7 @@ export default function ChargingSessions() {
       }
 
       // Make the API call with the token in the Authorization header
+      console.log('API_URL:', API_URL);
       const response = await fetch(`${API_URL}/sessions`, {
         method: 'GET',
         headers: {
@@ -32,6 +33,7 @@ export default function ChargingSessions() {
       }
 
       const data = await response.json();
+      // console.log('Fetched sessions:', data);
       return data;
     } catch (error) {
       console.error('Error fetching sessions:', error);

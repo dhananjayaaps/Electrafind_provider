@@ -30,6 +30,7 @@ export default function Login() {
       Alert.alert('Error', 'Please enter both email and password.');
       return;
     }
+    console.log('API_URL:', API_URL);
     try {
       const response = await fetch(`${API_URL}/stations/login`, {
         method: 'POST',
