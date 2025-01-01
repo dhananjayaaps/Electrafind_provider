@@ -12,14 +12,20 @@ export default function SessionDetails({ route, navigation }) {
   const [cost, setCost] = useState(0);
   const [sessionId, setSessionId] = useState(session.sessionId);
   const [status, setStatus] = useState(session.status);
-  const [chargeType, setChargeType] = useState(null);
+  const [chargeType, setChargeType] = useState(session.chargeType);
   const [selectedTime, setSelectedTime] = useState('');
+  const [fixedChargingTime, setFixedChargingTime] = useState('');
   const [chargingPrices, setChargingPrices] = useState(null);
-  
-  const totalTimeInSeconds = 0;
 
   useEffect(() => {
     // Fetch charging types and prices from the API
+    console.log(session);
+
+    if (status === 'Ongoing') {
+      setSelectedTime(session.startTime);
+      setFixedChargingTime(session.fixedChargingTime);
+    }
+
     const fetchChargingData = async () => {
       console.log('API_URL:', API_URL);
       try {
@@ -51,16 +57,13 @@ export default function SessionDetails({ route, navigation }) {
       Alert.alert('Error', 'Please select a charger type.');
       return;
     }
-    if (!selectedTime || isNaN(selectedTime) || selectedTime <= 0) {
+    if (!fixedChargingTime || isNaN(fixedChargingTime) || fixedChargingTime <= 0) {
       Alert.alert('Error', 'Please enter a valid charging time in minutes.');
       return;
     }
-
+  
     try {
       const token = await AsyncStorage.getItem('userToken');
-      console.log('API_URL:', API_URL);
-      console.log('Starting session with ID:', sessionId);
-      console.log('Charger type:', chargingPrices[chargeType]?.price);
       const response = await fetch(`${API_URL}/sessions/startSession`, {
         method: 'POST',
         headers: {
@@ -70,24 +73,22 @@ export default function SessionDetails({ route, navigation }) {
         body: JSON.stringify({
           sessionID: sessionId,
           unitPrice: chargingPrices[chargeType]?.price,
-          chargeType: chargeType,
+          chargeType,
+          fixedChargingTime: parseInt(fixedChargingTime),
         }),
       });
-
-      console.log('Start session response:', response);
-
+  
       if (!response.ok) {
-        throw new Error('Failed to start session');
+        throw new Error('Failed to start session.');
       }
-
+  
       const data = await response.json();
       if (data.success) {
-        const totalTime = parseInt(selectedTime) * 60;
-      setStatus('Ongoing');
-      setRemainingTime(totalTime);
-      setElapsedTime(0);
-      setCost(0);
-        Alert.alert('Session Started', `Charging session started with ${chargeType} for ${selectedTime} minutes.`);
+        setStatus(data.session.status);
+        setRemainingTime(data.session.totalTime);
+        setElapsedTime(0);
+        setCost(0);
+        Alert.alert('Session Started', `Charging session started with ${chargeType}.`);
       } else {
         Alert.alert('Error', 'Failed to start the session.');
       }
@@ -96,36 +97,61 @@ export default function SessionDetails({ route, navigation }) {
       Alert.alert('Error', 'Failed to start session.');
     }
   };
-
+  
   useEffect(() => {
     let timer;
-
-    if (status === 'Ongoing' && remainingTime > 0) {
-      timer = setInterval(() => {
-        setRemainingTime((prevTime) => {
-          const newTime = prevTime - 1;
-          if (newTime <= 0) {
-            clearInterval(timer);
-            setStatus('Completed');
-          }
-          return newTime;
-        });
-
-        setElapsedTime((prevElapsedTime) => {
-          const newElapsedTime = prevElapsedTime + 1;
-          const newCost = (newElapsedTime / 60) * chargingPrices[chargeType]?.price;
-          setCost(newCost);
-          return newElapsedTime;
-        });
-      }, 1000);
-    }
-
+  
+    const initializeSession = () => {
+      if (status === 'Ongoing') {
+        try {
+          timer = setInterval(() => {
+            const currentTime = new Date();
+            const sessionStartTime = new Date(session.startTime);
+  
+            const elapsed = Math.floor((currentTime - sessionStartTime) / 1000); // Time in seconds
+            const totalTime = session.fixedChargingTime || session.fixedChargingTime * 60; // Use totalTime if available
+            const remaining = Math.max(fixedChargingTime - elapsed, 0);
+  
+            setElapsedTime(elapsed);
+            setRemainingTime(remaining);
+  
+            const price = chargingPrices?.[chargeType]?.price || session.cost || 0;
+            const exceededTime = Math.max(elapsed - totalTime, 0);
+  
+            // Update cost dynamically
+            if (remaining > 0) {
+              setCost((elapsed / 60) * price);
+            } else {
+              setCost((totalTime / 60) * price + (exceededTime / 60) * price);
+            }
+          }, 1000);
+        } catch (error) {
+          console.error('Error initializing session:', error);
+        }
+      }
+    };
+  
+    initializeSession();
+  
+    // Cleanup interval on unmount
     return () => clearInterval(timer);
-  }, [status, remainingTime, chargeType]);
+  }, [status, session.startTime, chargeType, chargingPrices, session.totalTime, session.fixedChargingTime]);  
+  
 
   const getProgress = () => {
     if (elapsedTime && remainingTime) {
       return (elapsedTime / (elapsedTime + remainingTime)) * 100;
+    } else if (elapsedTime > fixedChargingTime) {
+      return 100;
+    }
+    return 0;
+  };
+
+  const getProgressText = () => {
+    if (elapsedTime && remainingTime) {
+      return (elapsedTime / (elapsedTime + remainingTime)) * 100;
+    } else if (elapsedTime > fixedChargingTime) {
+      return 100 + ((elapsedTime/60 - fixedChargingTime) / fixedChargingTime)*100;
     }
     return 0;
   };
@@ -154,6 +180,7 @@ export default function SessionDetails({ route, navigation }) {
         <Text style={styles.infoText}>
           <Text style={styles.bold}>Status:</Text> {status}
         </Text>
+  
         {status === 'New' && (
           <>
             <Picker
@@ -171,11 +198,12 @@ export default function SessionDetails({ route, navigation }) {
               placeholder="Enter charging time (minutes)"
               placeholderTextColor="#aaa"
               keyboardType="numeric"
-              value={selectedTime}
-              onChangeText={(text) => setSelectedTime(text)}
+              value={fixedChargingTime}
+              onChangeText={(text) => setFixedChargingTime(text)}
             />
           </>
         )}
+  
         {status === 'Ongoing' && (
           <>
             <Text style={styles.infoText}>
@@ -202,17 +230,26 @@ export default function SessionDetails({ route, navigation }) {
                   strokeDashoffset={2 * Math.PI * 90 - (getProgress() / 100) * 2 * Math.PI * 90}
                 />
               </Svg>
-              <Text style={styles.progressText}>{Math.round(getProgress())}%</Text>
+              <Text style={styles.progressText}>{Math.round(getProgressText())}%</Text>
             </View>
+  
             <Text style={styles.timerText}>
-              {`${Math.floor(remainingTime / 60)}:${remainingTime % 60 < 10 ? '0' : ''}${remainingTime % 60}`}
+              {elapsedTime > fixedChargingTime * 60 ? (
+                <Text style={{ color: "red" }}>
+                  {Math.floor((elapsedTime - fixedChargingTime * 60) / 60)}m {(elapsedTime - fixedChargingTime * 60) % 60}s
+                </Text>
+              ) : (
+                `${Math.floor(remainingTime / 60)}:${remainingTime % 60 < 10 ? '0' : ''}${remainingTime % 60}`
+              )}
             </Text>
+  
             <Text style={styles.infoText}>
               <Text style={styles.bold}>Cost:</Text> ${cost.toFixed(2)}
             </Text>
           </>
         )}
       </View>
+  
       {status === 'New' ? (
         <TouchableOpacity style={styles.startButton} onPress={handleStartSession}>
           <Text style={styles.startButtonText}>Start Session</Text>
@@ -224,6 +261,7 @@ export default function SessionDetails({ route, navigation }) {
       )}
     </View>
   );
+  
 }
 
 const styles = StyleSheet.create({

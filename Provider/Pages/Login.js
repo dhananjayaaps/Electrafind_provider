@@ -32,6 +32,7 @@ export default function Login() {
       return;
     }
     console.log('API_URL:', API_URL);
+    console.log('API_URL:', API_URL);
     try {
       const response = await fetch(`${API_URL}/stations/login`, {
         method: 'POST',

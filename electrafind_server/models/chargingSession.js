@@ -27,6 +27,9 @@ module.exports = (sequelize) => {
     TotalTime: {
       type: DataTypes.INTEGER,
     },
+    fixedChargingTime: {
+      type: DataTypes.INTEGER,
+    },
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,

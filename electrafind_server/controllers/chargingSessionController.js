@@ -33,6 +33,7 @@ exports.getAllChargingSessions = async (req, res) => {
       endTime: session.EndTime,
       cost: session.Cost,
       totalTime: session.TotalTime,
+      fixedChargingTime: session.fixedChargingTime,
     }));
 
     res.status(200).json(sessionData);
@@ -74,44 +75,43 @@ exports.deleteChargingSession = async (req, res) => {
 
 exports.startSession = async (req, res) => {
   try {
-    const { sessionID, unitPrice, chargeType } = req.body;
-    // console.log('sessionID:', sessionID);
-    // console.log('unitPrice:', unitPrice);
-    console.log('-----------------------------chargeType:', chargeType);
+    const { sessionID, unitPrice, chargeType, fixedChargingTime } = req.body;
 
-    let ChargeType = 'Type -1';
-
-    if(chargeType === 'level1'){
-      ChargeType = 'Level 1';
-    }
-    else if(chargeType === 'level2'){
-      ChargeType = 'Level 2';
-    }
-    else if(chargeType === 'level3'){
-      ChargeType = 'Level 3';
+    if (!sessionID || !unitPrice || !chargeType || isNaN(fixedChargingTime) || fixedChargingTime <= 0) {
+      return res.status(400).json({ message: 'Invalid input. Please provide all required fields.' });
     }
 
-    if (!sessionID || !unitPrice) {
-      return res.status(400).json({ message: 'Session ID and cost are required' });
-    }
-    
     const session = await chargingSession.findOne({ where: { SessionID: sessionID } });
 
-    // console.log('session:', session);
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found.' });
+    }
+
     if (session.Status !== 'New') {
-      return res.status(400).json({ message: 'Charging session start failed' });
+      return res.status(400).json({ message: 'Cannot start session. Invalid status.' });
     }
 
     session.StartTime = new Date();
     session.Status = 'Ongoing';
-    session.Cost = unitPrice;
-    session.ChargeType = ChargeType;
+    session.Cost = parseFloat(unitPrice);
+    session.ChargeType = chargeType;
+    session.fixedChargingTime = parseInt(fixedChargingTime);
+    session.TotalTime = fixedChargingTime * 60; // Convert minutes to seconds
     await session.save();
 
-    console.log('Session started successfully');
-    res.status(200).json({ message: 'Charging session started successfully' , success: true, session });
+    res.status(200).json({
+      message: 'Charging session started successfully.',
+      success: true,
+      session: {
+        sessionID: session.SessionID,
+        startTime: session.StartTime,
+        status: session.Status,
+        cost: session.Cost,
+        totalTime: session.TotalTime,
+      },
+    });
   } catch (error) {
     console.error('Error starting session:', error);
     res.status(500).json({ error: error.message });
   }
-}
+};
