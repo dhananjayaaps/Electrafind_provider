@@ -17,7 +17,7 @@ module.exports = (sequelize) => {
       type: DataTypes.FLOAT,
     },
     Status: {
-      type: DataTypes.ENUM('pending', 'New', 'Ongoing', 'Completed', 'Cancelled'),
+      type: DataTypes.ENUM('pending', 'New', 'Ongoing', 'Completed', 'Closed','Cancelled'),
       allowNull: false,
     },
     ChargeType: {

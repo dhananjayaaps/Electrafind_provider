@@ -16,6 +16,8 @@ export default function SessionDetails({ route, navigation }) {
   const [selectedTime, setSelectedTime] = useState('');
   const [fixedChargingTime, setFixedChargingTime] = useState('');
   const [chargingPrices, setChargingPrices] = useState(null);
+  const [sessionDetails, setSessionDetails] = useState(null);
+
 
   useEffect(() => {
     // Fetch charging types and prices from the API
@@ -24,6 +26,10 @@ export default function SessionDetails({ route, navigation }) {
     if (status === 'Ongoing') {
       setSelectedTime(session.startTime);
       setFixedChargingTime(session.fixedChargingTime);
+    }
+
+    if (status === 'Completed') {
+      fetchSessionDetails();
     }
 
     const fetchChargingData = async () => {
@@ -156,20 +162,123 @@ export default function SessionDetails({ route, navigation }) {
     return 0;
   };
 
-  const handleStopSession = () => {
+  const handleStopSession = async () => {
     Alert.alert('Stop Session', 'Are you sure you want to stop the session?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Stop',
-        onPress: () => {
-          setStatus('Completed');
-          Alert.alert('Session Stopped', `Total cost: $${cost.toFixed(2)}`);
-          navigation.goBack();
+        onPress: async () => {
+          try {
+            // Stop the timer
+            clearInterval(timer);  // Ensure the timer is stopped
+  
+            // Call the API to stop the session
+            const token = await AsyncStorage.getItem('userToken');
+            const response = await fetch(`${API_URL}/sessions/endSession`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                sessionID: sessionId,
+              }),
+            });
+  
+            if (!response.ok) {
+              throw new Error('Failed to stop session.');
+            }
+  
+            const data = await response.json();
+            if (data.success) {
+              // Update state with the finalized session data
+              setStatus('Completed');
+              setElapsedTime(data.session.totalTime);
+              setRemainingTime(0);
+              setCost(data.session.cost);
+  
+              // Fetch detailed session information
+              await fetchSessionDetails();
+  
+              Alert.alert('Session Stopped', `Total cost: $${cost.toFixed(2)}`);
+              navigation.goBack();
+            } else {
+              Alert.alert('Error', 'Failed to stop the session.');
+            }
+          } catch (error) {
+            console.error('Error stopping session:', error);
+            Alert.alert('Error', 'Failed to stop session.');
+          }
         },
       },
     ]);
   };
 
+  const fetchSessionDetails = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const response = await fetch(`${API_URL}/sessions/${sessionId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch session details.');
+      }
+  
+      const data = await response.json();
+      if (data) {
+        // Set the detailed session information
+        setSessionDetails(data);
+      } else {
+        Alert.alert('Error', 'Failed to fetch session details.');
+      }
+    } catch (error) {
+      console.error('Error fetching session details:', error);
+      Alert.alert('Error', 'Failed to fetch session details.');
+    }
+  };
+  
+  const handleCloseSession = () => {
+    Alert.alert('Close Session', 'Are you sure you want to close the session?', [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Close', 
+        onPress: async () => {
+          try {
+            // Make the API call to close the session
+            const token = await AsyncStorage.getItem('userToken');
+            const response = await fetch(`${API_URL}/sessions/closeSession`, {
+              method: 'PUT', // Assuming PUT for closing the session
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                sessionID: sessionId, // Use the actual session ID here
+              }),
+            });
+  
+            const data = await response.json();
+  
+            if (response.ok) {
+              Alert.alert('Session Closed', 'The session has been closed successfully.');
+              navigation.goBack();
+            } else {
+              Alert.alert('Error', data.message || 'Something went wrong while closing the session.');
+            }
+          } catch (error) {
+            console.error('Error closing session:', error);
+            Alert.alert('Error', 'An error occurred while closing the session.');
+          }
+        }
+      },
+    ]);
+  };
+  
+  
   return (
     <View style={styles.container}>
       <Text style={styles.headerText}>Session Details</Text>
@@ -180,6 +289,29 @@ export default function SessionDetails({ route, navigation }) {
         <Text style={styles.infoText}>
           <Text style={styles.bold}>Status:</Text> {status}
         </Text>
+
+        {status === 'Completed' && sessionDetails && (
+        <View>
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>Session ID:</Text> {sessionDetails.SessionID}
+          </Text>
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>Start Time:</Text> {new Date(sessionDetails.StartTime).toLocaleString()}
+          </Text>
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>End Time:</Text> {new Date(sessionDetails.EndTime).toLocaleString()}
+          </Text>
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>Charge Type:</Text> {sessionDetails.ChargeType}
+          </Text>
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>Total Time:</Text> {Math.floor(sessionDetails.TotalTime / 60)} minutes
+          </Text>
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>Cost:</Text> ${sessionDetails.Cost.toFixed(2)}
+          </Text>
+        </View>
+      )}
   
         {status === 'New' && (
           <>
@@ -254,11 +386,16 @@ export default function SessionDetails({ route, navigation }) {
         <TouchableOpacity style={styles.startButton} onPress={handleStartSession}>
           <Text style={styles.startButtonText}>Start Session</Text>
         </TouchableOpacity>
+      ) : status === 'Completed' ? (
+        <TouchableOpacity style={styles.closeButton} onPress={handleCloseSession}>
+          <Text style={styles.closeButtonText}>Close Session</Text>
+        </TouchableOpacity>
       ) : (
         <TouchableOpacity style={styles.stopButton} onPress={handleStopSession}>
           <Text style={styles.stopButtonText}>Stop Session</Text>
         </TouchableOpacity>
       )}
+
     </View>
   );
   
@@ -344,5 +481,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  startButton: {
+    backgroundColor: '#28a745',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  closeButton: {
+    backgroundColor: '#6c757d',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });

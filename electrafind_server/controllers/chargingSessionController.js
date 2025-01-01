@@ -7,7 +7,7 @@ exports.getAllChargingSessions = async (req, res) => {
     const sessions = await chargingSession.findAll({
       where: {
         Status: {
-          [Op.in]: ['New', 'Ongoing'],
+          [Op.in]: ['New', 'Ongoing', 'Completed'],
         },
         providerID: req.provider.StationID,
       },
@@ -46,7 +46,7 @@ exports.getAllChargingSessions = async (req, res) => {
 // Get charging session by ID
 exports.getChargingSessionById = async (req, res) => {
   try {
-    const session = await ChargingSession.findByPk(req.params.id, { include: [Vehicle, ChargingStation] });
+    const session = await chargingSession.findOne({ where: { SessionID: req.params.id } });
     if (!session) return res.status(404).json({ message: 'Charging session not found' });
     res.json(session);
   } catch (error) {
@@ -112,6 +112,91 @@ exports.startSession = async (req, res) => {
     });
   } catch (error) {
     console.error('Error starting session:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Stop a charging session
+exports.stopSession = async (req, res) => {
+  try {
+    const { sessionID } = req.body;
+
+    if (!sessionID) {
+      return res.status(400).json({ message: 'Session ID is required.' });
+    }
+
+    const session = await chargingSession.findOne({ where: { SessionID: sessionID } });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found.' });
+    }
+
+    if (session.Status !== 'Ongoing') {
+      return res.status(400).json({ message: 'Cannot stop session. Session is not in progress.' });
+    }
+
+    // Calculate the total time spent in seconds
+    const currentTime = new Date();
+    const startTime = new Date(session.StartTime);
+    const elapsedTimeInSeconds = Math.floor((currentTime - startTime) / 1000); // elapsed time in seconds
+
+    session.EndTime = currentTime;
+    session.Status = 'Completed';
+    session.TotalTime = elapsedTimeInSeconds; // Total time spent
+    session.Cost = (elapsedTimeInSeconds / 60) * session.Cost; // Recalculate cost based on actual time
+
+    await session.save();
+
+    res.status(200).json({
+      message: 'Charging session stopped successfully.',
+      success: true,
+      session: {
+        sessionID: session.SessionID,
+        startTime: session.StartTime,
+        endTime: session.EndTime,
+        status: session.Status,
+        totalTime: session.TotalTime,
+        cost: session.Cost.toFixed(2), // format cost as currency
+      },
+    });
+  } catch (error) {
+    console.error('Error stopping session:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Close a charging session
+exports.closeSession = async (req, res) => {
+  try {
+    const { sessionID } = req.body;
+
+    if (!sessionID) {
+      return res.status(400).json({ message: 'Session ID is required.' });
+    }
+
+    const session = await chargingSession.findOne({ where: { SessionID: sessionID } });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found.' });
+    }
+
+    if (session.Status !== 'Completed') {
+      return res.status(400).json({ message: 'Cannot close the session. The session must be completed first.' });
+    }
+
+    session.Status = 'Closed';
+    await session.save();
+
+    res.status(200).json({
+      message: 'Charging session closed successfully.',
+      success: true,
+      session: {
+        sessionID: session.SessionID,
+        status: session.Status,
+      },
+    });
+  } catch (error) {
+    console.error('Error closing session:', error);
     res.status(500).json({ error: error.message });
   }
 };
