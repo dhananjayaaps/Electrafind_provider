@@ -89,6 +89,9 @@ export default function ChargingSessions() {
       onPress={() => navigation.navigate('SessionDetails', { session: item })}
     >
       <Text style={styles.sessionText}>
+        <Text style={styles.bold}>Session ID:</Text> {item.sessionId}
+      </Text>
+      <Text style={styles.sessionText}>
         <Text style={styles.bold}>User:</Text> {item.userName}
       </Text>
       <Text style={styles.sessionText}>

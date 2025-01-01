@@ -26,6 +26,7 @@ export default function Login() {
   };
 
   const handleLogin = async () => {
+    // prevent default
     if (email === '' || password === '') {
       Alert.alert('Error', 'Please enter both email and password.');
       return;

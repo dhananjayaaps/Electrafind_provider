@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Svg, { Circle } from 'react-native-svg';
-import { API_URL, API_KEY } from '@env'; 
+import { API_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SessionDetails({ route, navigation }) {
@@ -10,17 +10,18 @@ export default function SessionDetails({ route, navigation }) {
   const [remainingTime, setRemainingTime] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [cost, setCost] = useState(0);
-  const [sessionId, setSessionId] = useState(session.id);
+  const [sessionId, setSessionId] = useState(session.sessionId);
   const [status, setStatus] = useState(session.status);
   const [chargeType, setChargeType] = useState(null);
   const [selectedTime, setSelectedTime] = useState('');
   const [chargingPrices, setChargingPrices] = useState(null);
-  const ratePerMinute = 0.5;
+  
   const totalTimeInSeconds = 0;
 
   useEffect(() => {
     // Fetch charging types and prices from the API
     const fetchChargingData = async () => {
+      console.log('API_URL:', API_URL);
       try {
         const token = await AsyncStorage.getItem('userToken');
         const response = await fetch(`${API_URL}/stations/mystation`, {
@@ -45,7 +46,7 @@ export default function SessionDetails({ route, navigation }) {
     fetchChargingData();
   }, []);
 
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
     if (!chargeType) {
       Alert.alert('Error', 'Please select a charger type.');
       return;
@@ -55,12 +56,45 @@ export default function SessionDetails({ route, navigation }) {
       return;
     }
 
-    const totalTime = parseInt(selectedTime) * 60;
-    setStatus('Ongoing');
-    setRemainingTime(totalTime);
-    setElapsedTime(0);
-    setCost(0);
-    Alert.alert('Session Started', `Charging session started with ${chargeType} for ${selectedTime} minutes.`);
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      console.log('API_URL:', API_URL);
+      console.log('Starting session with ID:', sessionId);
+      console.log('Charger type:', chargingPrices[chargeType]?.price);
+      const response = await fetch(`${API_URL}/sessions/startSession`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          sessionID: sessionId,
+          unitPrice: chargingPrices[chargeType]?.price,
+          chargeType: chargeType,
+        }),
+      });
+
+      console.log('Start session response:', response);
+
+      if (!response.ok) {
+        throw new Error('Failed to start session');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        const totalTime = parseInt(selectedTime) * 60;
+      setStatus('Ongoing');
+      setRemainingTime(totalTime);
+      setElapsedTime(0);
+      setCost(0);
+        Alert.alert('Session Started', `Charging session started with ${chargeType} for ${selectedTime} minutes.`);
+      } else {
+        Alert.alert('Error', 'Failed to start the session.');
+      }
+    } catch (error) {
+      console.error('Error starting session:', error);
+      Alert.alert('Error', 'Failed to start session.');
+    }
   };
 
   useEffect(() => {
@@ -79,14 +113,15 @@ export default function SessionDetails({ route, navigation }) {
 
         setElapsedTime((prevElapsedTime) => {
           const newElapsedTime = prevElapsedTime + 1;
-          setCost((newElapsedTime / 60) * ratePerMinute);
+          const newCost = (newElapsedTime / 60) * chargingPrices[chargeType]?.price;
+          setCost(newCost);
           return newElapsedTime;
         });
       }, 1000);
     }
 
     return () => clearInterval(timer);
-  }, [status, remainingTime]);
+  }, [status, remainingTime, chargeType]);
 
   const getProgress = () => {
     if (elapsedTime && remainingTime) {
@@ -127,14 +162,8 @@ export default function SessionDetails({ route, navigation }) {
               style={styles.picker}
             >
               <Picker.Item label="Select Charger Type" value={null} />
-              {chargingPrices && chargingPrices.level1.active && (
-                <Picker.Item label="Level 1" value="Level 1" />
-              )}
               {chargingPrices && chargingPrices.level2.active && (
-                <Picker.Item label="Level 2" value="Level 2" />
-              )}
-              {chargingPrices && chargingPrices.level3.active && (
-                <Picker.Item label="Level 3" value="Level 3" />
+                <Picker.Item label="Level 2" value="level2" />
               )}
             </Picker>
             <TextInput
@@ -238,42 +267,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 10,
   },
+  circleContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  progressText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 10,
+  },
+  timerText: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginTop: 20,
+  },
   startButton: {
     backgroundColor: '#08A045',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
+    marginTop: 20,
   },
   startButtonText: {
-    color: '#FFFFFF',
+    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
   },
   stopButton: {
-    backgroundColor: '#E63946',
+    backgroundColor: '#D9534F',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
+    marginTop: 20,
   },
   stopButtonText: {
-    color: '#FFFFFF',
+    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  circleContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  progressText: {
-    position: 'absolute',
-    color: '#FFFFFF',
-    fontSize: 24,
-  },
-  timerText: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    textAlign: 'center',
-    marginTop: 10,
   },
 });

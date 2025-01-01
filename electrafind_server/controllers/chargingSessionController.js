@@ -53,16 +53,6 @@ exports.getChargingSessionById = async (req, res) => {
   }
 };
 
-// Create a new charging session
-exports.createChargingSession = async (req, res) => {
-  try {
-    const newSession = await ChargingSession.create(req.body);
-    res.status(201).json(newSession);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 exports.updateChargingSession = async (req, res) => {
   try {
     const updated = await ChargingSession.update(req.body, { where: { ChargingSessionID: req.params.id } });
@@ -81,3 +71,47 @@ exports.deleteChargingSession = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.startSession = async (req, res) => {
+  try {
+    const { sessionID, unitPrice, chargeType } = req.body;
+    // console.log('sessionID:', sessionID);
+    // console.log('unitPrice:', unitPrice);
+    console.log('-----------------------------chargeType:', chargeType);
+
+    let ChargeType = 'Type -1';
+
+    if(chargeType === 'level1'){
+      ChargeType = 'Level 1';
+    }
+    else if(chargeType === 'level2'){
+      ChargeType = 'Level 2';
+    }
+    else if(chargeType === 'level3'){
+      ChargeType = 'Level 3';
+    }
+
+    if (!sessionID || !unitPrice) {
+      return res.status(400).json({ message: 'Session ID and cost are required' });
+    }
+    
+    const session = await chargingSession.findOne({ where: { SessionID: sessionID } });
+
+    // console.log('session:', session);
+    if (session.Status !== 'New') {
+      return res.status(400).json({ message: 'Charging session start failed' });
+    }
+
+    session.StartTime = new Date();
+    session.Status = 'Ongoing';
+    session.Cost = unitPrice;
+    session.ChargeType = ChargeType;
+    await session.save();
+
+    console.log('Session started successfully');
+    res.status(200).json({ message: 'Charging session started successfully' , success: true, session });
+  } catch (error) {
+    console.error('Error starting session:', error);
+    res.status(500).json({ error: error.message });
+  }
+}

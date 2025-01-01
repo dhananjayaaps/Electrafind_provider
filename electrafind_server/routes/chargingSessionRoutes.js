@@ -4,8 +4,8 @@ const chargingSessionController = require('../controllers/chargingSessionControl
 const providerProtect = require('../middlewares/providerMiddleware');
 
 router.get('/', providerProtect, chargingSessionController.getAllChargingSessions);
+router.post('/startSession', providerProtect, chargingSessionController.startSession);
 router.get('/:id', chargingSessionController.getChargingSessionById);
-router.post('/', chargingSessionController.createChargingSession);
 router.put('/:id', chargingSessionController.updateChargingSession);
 router.delete('/:id', chargingSessionController.deleteChargingSession);
 

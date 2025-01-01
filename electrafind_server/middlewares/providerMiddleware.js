@@ -8,7 +8,7 @@ const providerProtect = async (req, res, next) => {
         token = req.headers.authorization.split(' ')[1];
     }
 
-    console.log('Token: ', token);
+    // console.log('Token: ', token);
 
     if (!token) {
         return res.status(401).json({ message: 'Not authorized, no token' });
@@ -16,7 +16,7 @@ const providerProtect = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log('Decoded: ', decoded);
+        // console.log('Decoded: ', decoded);
         req.provider = await chargingStation.findOne({where: {StationID: decoded.id}});
         next();
     } catch (error) {

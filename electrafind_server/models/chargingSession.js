@@ -13,9 +13,6 @@ module.exports = (sequelize) => {
     EndTime: {
       type: DataTypes.DATE,
     },
-    PowerCharged: {
-      type: DataTypes.FLOAT,
-    },
     Cost: {
       type: DataTypes.FLOAT,
     },
@@ -24,7 +21,7 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
     ChargeType: {
-      type: DataTypes.ENUM('Type A', 'Type B', 'Type C'),
+      type: DataTypes.ENUM('Level 1', 'Level 2', 'Level 3'),
       allowNull: true,
     },
     TotalTime: {
