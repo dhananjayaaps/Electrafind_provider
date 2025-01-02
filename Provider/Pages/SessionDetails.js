@@ -248,10 +248,11 @@ export default function SessionDetails({ route, navigation }) {
         text: 'Close', 
         onPress: async () => {
           try {
+            console.log('API_URL:', API_URL);
             // Make the API call to close the session
             const token = await AsyncStorage.getItem('userToken');
-            const response = await fetch(`${API_URL}/sessions/closeSession`, {
-              method: 'PUT', // Assuming PUT for closing the session
+            const response = await fetch(`${API_URL}/sessions/close`, {
+              method: 'PATCH', // Assuming PUT for closing the session
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -262,6 +263,7 @@ export default function SessionDetails({ route, navigation }) {
             });
   
             const data = await response.json();
+            console.log('Close session response:', response);
   
             if (response.ok) {
               Alert.alert('Session Closed', 'The session has been closed successfully.');

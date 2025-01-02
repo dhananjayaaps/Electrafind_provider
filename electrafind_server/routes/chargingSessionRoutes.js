@@ -9,6 +9,6 @@ router.post('/endSession', providerProtect, chargingSessionController.stopSessio
 router.get('/:id', chargingSessionController.getChargingSessionById);
 router.put('/:id', chargingSessionController.updateChargingSession);
 router.delete('/:id', chargingSessionController.deleteChargingSession);
-router.put('/sessions/close', providerProtect, chargingSessionController.closeSession);
+router.patch('/close', providerProtect, chargingSessionController.closeSession);
 
 module.exports = router;

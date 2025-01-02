@@ -36,17 +36,11 @@ export default function ChargingSessions() {
       // console.log('Fetched sessions:', data);
       return data;
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      // console.error('Error fetching sessions:', error);
       return [];
     }
   };
 
-
-  // const fetchSessions = async () => {
-  //   return new Promise((resolve) => {
-  //     setTimeout(() => resolve(mockSessions), 1000);
-  //   });
-  // };
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -59,9 +53,16 @@ export default function ChargingSessions() {
         setLoading(false);
       }
     };
-
+  
     loadSessions();
+  
+    const interval = setInterval(() => {
+      loadSessions(); 
+    }, 2000);
+  
+    return () => clearInterval(interval);
   }, []);
+  
 
   // Update remaining time for ongoing sessions every second
   useEffect(() => {

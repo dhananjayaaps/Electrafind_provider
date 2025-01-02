@@ -168,6 +168,7 @@ exports.stopSession = async (req, res) => {
 // Close a charging session
 exports.closeSession = async (req, res) => {
   try {
+    console.log('Request body:', req.body);
     const { sessionID } = req.body;
 
     if (!sessionID) {
