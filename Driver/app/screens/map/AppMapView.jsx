@@ -7,10 +7,6 @@ import { UserLocationContext } from '../../Context/UserLocationContext';
 import MapViewStyle from '../../Utils/MapViewStyle'
 import Markers from './Markers';
 
-
-
-
-
 export default function AppMapView({placeList, onMarkerTouch}) {
 
   const {location,setLocation}=useContext(UserLocationContext);
@@ -36,11 +32,9 @@ export default function AppMapView({placeList, onMarkerTouch}) {
               //change to the location of the user
             }}
             
-            // description="Your Location"
+            description="Sri Lanka"
           >
-            {/* <Image source={require('../../assets/images/car-marker.png')} style={{height: 50, width: 50}} /> */}
-            {/* <Image source={images.carMarker} style={{height: 50, width: 0}} /> */}
-          </Marker>:null}
+           </Marker>:null}
 
           {placeList&&placeList.map((item,index)=>(
             <Markers key={index}

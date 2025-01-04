@@ -12,23 +12,6 @@ const config={
   }
 }
 
-// const NewNearByPlace=async(data)=>{
-//   console.log("data hu",data);
-//   try{
-
-//     const response =await axios.post(BASE_URL,data,config);
-//     console.log("response",response);
-//   }catch(error){
-    
-//     console.log("error",error);
-//   }
-//    return response;
-// };
-
-// export default{
-//   NewNearByPlace
-// }
-
 const NewNearByPlace=(data)=>axios.post(BASE_URL,data,config);
 
 export default{

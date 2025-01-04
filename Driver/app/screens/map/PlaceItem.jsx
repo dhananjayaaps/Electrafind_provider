@@ -40,13 +40,10 @@ export default function PlaceItem({place}) {
           <Text style={{fontSize:18,}} className="font-psemibold ">{place.displayName?.text}</Text>
           <Text style={{color:Colors.GRAY,fontSize:15}} className="font-pmedium">{place?.shortFormattedAddress}</Text>
         </View>
-        {/* <View style={{padding:12,backgroundColor:'#22c55e',paddingHorizontal:18,paddingVertical:18, borderRadius:10,margin:5}}>
-          <FontAwesome name="location-arrow" size={24} color="#ffffff" />
-        </View> */}
+
         <GotoPageButton
         handlePress={() => navigation.navigate('chargingStationProfile',{place})}
           
-          // isLoading={isSubmitting}
         />
 
       </View>

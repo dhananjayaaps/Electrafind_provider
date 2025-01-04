@@ -1,4 +1,6 @@
 const { user } = require('../models');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 // Get all users
 exports.getAllUsers = async (req, res) => {
@@ -47,6 +49,45 @@ exports.createUser = async (req, res) => {
     });
   }
 };
+
+// Sign in a user
+exports.signIn = async (req, res) => {
+  const { Email, Password } = req.body;
+
+  try {
+    // Find user by email
+    const foundUser = await user.findOne({ where: { Email } });
+    if (!foundUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Validate password
+    const isPasswordValid = await bcrypt.compare(Password, foundUser.PasswordHash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { userId: foundUser.UserID, email: foundUser.Email },
+      process.env.JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    res.json({
+      message: 'Sign-in successful',
+      token,
+      user: {
+        userId: foundUser.UserID,
+        email: foundUser.Email,
+        name: foundUser.Name,
+      },
+    });
+  } catch (error) {
+    console.error('Error during sign-in:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 // Update a user
 exports.updateUser = async (req, res) => {
