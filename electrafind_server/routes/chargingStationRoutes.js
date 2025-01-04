@@ -10,6 +10,7 @@ router.get('/:id', chargingStationController.getStationById); // Get station by 
 router.post('/', chargingStationController.createStation); // Create a new station
 router.put('/:id', chargingStationController.updateStation); // Update a station
 router.delete('/:id', chargingStationController.deleteStation); // Delete a station
+router.patch('/', providerProtect, chargingStationController.partialUpdateStation); // update a station
 
 // Routes for station authentication
 router.post('/register', chargingStationController.registerStation); // Register a new station

@@ -123,7 +123,7 @@ export default function ChargingSessions() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerText}>All Charging Sessions</Text>
+      {/* <Text style={styles.headerText}>All Charging Sessions</Text> */}
       {loading ? (
         <ActivityIndicator size="large" color="#08A045" />
       ) : sessions.length > 0 ? (

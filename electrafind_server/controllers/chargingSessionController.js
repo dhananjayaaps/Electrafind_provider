@@ -201,3 +201,42 @@ exports.closeSession = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getClosedChargingSessions = async (req, res) => {
+  try {
+    const closedSessions = await chargingSession.findAll({
+      where: {
+        Status: 'Closed',
+        providerID: req.provider.StationID,
+      },
+      order: [['EndTime', 'DESC']],
+      include: [
+        {
+          model: user,
+          as: 'user',
+          attributes: ['Name'],
+        },
+      ],
+    });
+
+    if (closedSessions.length === 0) {
+      return res.status(404).json({ message: 'No closed sessions found.' });
+    }
+
+    const sessionData = closedSessions.map(session => ({
+      sessionId: session.SessionID,
+      userName: session.user.Name,
+      chargeType: session.ChargeType,
+      status: session.Status,
+      startTime: session.StartTime,
+      endTime: session.EndTime,
+      cost: session.Cost,
+      totalTime: session.TotalTime,
+    }));
+
+    res.status(200).json(sessionData);
+  } catch (error) {
+    console.error('Error fetching closed sessions:', error);
+    res.status(500).json({ message: 'An error occurred while fetching closed sessions.' });
+  }
+};

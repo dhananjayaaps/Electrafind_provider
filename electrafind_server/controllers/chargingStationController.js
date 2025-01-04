@@ -184,3 +184,50 @@ exports.getMyStation = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Update specific fields of a station
+exports.partialUpdateStation = async (req, res) => {
+  try {
+    const id = req.provider.id;
+    const {
+      Name,
+      Location,
+      AvailableStartTime,
+      AvailableEndTime,
+      ImageUrl
+    } = req.body;
+
+    // Check if station exists
+    const station = req.provider;
+
+    // Validate input data
+    const urlRegex = /^(http|https):\/\/[^ "\n]+$/;
+    if (ImageUrl && !urlRegex.test(ImageUrl)) {
+      return res.status(400).json({ message: 'Invalid ImageUrl format.' });
+    }
+
+    const moment = require('moment');
+    const updatedData = {};
+
+    if (Name) updatedData.Name = Name;
+    if (Location) updatedData.Location = Location;
+    if (AvailableStartTime) {
+      updatedData.AvailableStartTime = moment(AvailableStartTime, ["h:mm:ss A"]).format("HH:mm:ss");
+    }
+    if (AvailableEndTime) {
+      updatedData.AvailableEndTime = moment(AvailableEndTime, ["h:mm:ss A"]).format("HH:mm:ss");
+    }
+    if (ImageUrl) updatedData.ImageUrl = ImageUrl;
+
+    // Perform the update
+    await chargingStation.update(updatedData, { where: { StationID: id } });
+
+    // Fetch the updated station
+    const updatedStation = await chargingStation.findByPk(id);
+
+    res.json({ message: 'Station updated successfully.', station: updatedStation });
+  } catch (error) {
+    console.error('Error updating station:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+};
