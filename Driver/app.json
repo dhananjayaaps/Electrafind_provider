@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "electrafind_driver",
+    "scheme": "electrafind_driver",
+    "slug": "electrafind_driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.company.electrafind_driver",
+      "config": {
+        "googleMapsApiKey": "AIzaSyDTYD4DNXMdQCRcjy0-ePWn5OpM0Ggki54"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDTYD4DNXMdQCRcjy0-ePWn5OpM0Ggki54"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ]
+  }
+}
