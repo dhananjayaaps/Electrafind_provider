@@ -1,17 +1,12 @@
 import { ActivityIndicator, Text, TouchableOpacity,Image } from "react-native";
 import { FontAwesome } from '@expo/vector-icons';
 
-
-
 const GotoPageButton = ({
   title,
   handlePress,
   containerStyles,
   textStyles,
   isLoading,
-  
-  
-
   
 }) => {
   return (

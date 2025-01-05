@@ -21,8 +21,8 @@ export default function AppMapView({placeList, onMarkerTouch}) {
           //change to the location of the user
           latitude: location?.latitude,
           longitude: location?.longitude,
-          latitudeDelta: 0.0422,
-          longitudeDelta: 0.0421,
+          latitudeDelta: 6.9271,
+          longitudeDelta: 79.8612,
         }}
         >
           {location? <Marker

@@ -1,136 +1,171 @@
-import {  ScrollView, Text, View,TouchableWithoutFeedback, Keyboard } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useContext, useEffect, useState } from 'react'
-import { UserLocationContext } from '../../Context/UserLocationContext'
-import GlobalApi from '../../Utils/GlobalApi'
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Alert, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+import axios from 'axios';
+import { API_URL } from '@env';
+import { getDistance } from 'geolib';
 
-import React from 'react'
-import AppMapView from '../../screens/map/AppMapView'
-import Header from '../../screens/map/Header'
-import { StyleSheet } from 'react-native'
-import SearchBar from '../../screens/map/SearchBar'
-import PlaceListView from '../../screens/map/PlaceListView'
-import { SelectMarkerContext } from '../../Context/SelectMarkerContext'
+export default function MapScreen({ navigation }) {
+  const [userLocation, setUserLocation] = useState(null);
+  const [placeList, setPlaceList] = useState([]);
+  const mapRef = useRef(null);
 
+  const colomboRegion = {
+    latitude: 6.9271,
+    longitude: 79.8612,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  };
 
-export default function MapScreen() {
-
-  const {location,setLocation}=useContext(UserLocationContext);
-  const [placeList,setPlaceList]=useState([]);
-  const [selectedMarker,setSelectedMarker]=useState([]);
-  const [isPlaceListVisible, setIsPlaceListVisible] = useState(true);
-
-  //newly added
-  const [isMarkerTouched, setIsMarkerTouched] = useState(false);
-  
-  // useEffect(() => {
-  //   // location&&GetNearByPlace();
-  //   if(location){
-
-  //     GetNearByPlace(location);
-  //   }
-  // }, [location])
-
-  useEffect(()=>{
-    location&&GetNearByPlace();
-  },[location])
-
-  const GetNearByPlace=()=>{
-    const data={
-      "includedTypes": ["electric_vehicle_charging_station"],
-      "maxResultCount": 20,
-      "locationRestriction": {
-        "circle": {
-          "center": {
-            "latitude": location?.latitude,
-            "longitude": location?.longitude
-          },
-          "radius": 50000.0
-        }
-      }
+  const requestLocationPermission = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Denied',
+        'Location access is required to show your location on the map. Please enable it in your settings.',
+        [{ text: 'OK' }]
+      );
+      return false;
     }
-
-
-    GlobalApi.NewNearByPlace(data).then(resp=>{
-      // console.log(resp);
-      // console.log(JSON.stringify(resp.data));
-      setPlaceList(resp.data?.places)
-    })
-  }
-
-  const handleMapTouch = () => {
-    Keyboard.dismiss();
-    setIsPlaceListVisible(false); // Hide the PlaceListView when the map is touched
+    return true;
   };
 
-  const handleMarkerTouch = () => {
-    setIsPlaceListVisible(true);
-    setIsMarkerTouched(true);
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  useEffect(() => {
+    if (placeList.length === 0) {
+      const interval = setInterval(() => {
+        fetchStations();
+      }, 10000);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  const getCurrentLocation = async () => {
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) return;
+
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+    const { latitude, longitude } = location.coords;
+    const newRegion = {
+      latitude,
+      longitude,
+      latitudeDelta: 0.1,
+      longitudeDelta: 0.1,
+    };
+
+    setUserLocation(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 1000);
   };
 
-  const handleSearchFocus = () => {
-    setIsPlaceListVisible(false);
+  const fetchStations = async () => {
+    try {
+      console.log('Fetching stations...');
+      const response = await axios.get(`${API_URL}/stations`);
+      setPlaceList(response.data);
+    } catch (error) {
+      console.error('Error fetching stations:', error);
+    }
   };
+
+  const findNearestStation = () => {
+    if (!userLocation || placeList.length === 0) return;
+
+    let nearestStation = null;
+    let nearestDistance = Infinity;
+
+    placeList.forEach((place) => {
+      const distance = getDistance(
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        { latitude: place.Latitude, longitude: place.Longitude }
+      );
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestStation = place;
+      }
+    });
+
+    if (nearestStation) {
+      const newRegion = {
+        latitude: nearestStation.Latitude,
+        longitude: nearestStation.Longitude,
+        latitudeDelta: 0.1,
+        longitudeDelta: 0.1,
+      };
+      mapRef.current?.animateToRegion(newRegion, 1000);
+    }
+  };
+
+  useEffect(() => {
+    if (userLocation && placeList.length > 0) {
+      findNearestStation();
+    }
+  }, [userLocation, placeList]);
+
+  const handleMarkerPress = (place) => {
+    navigation.navigate('chargingStationProfile', {
+      station: place,
+    });
+  };
+
+  if (!userLocation) return "loading";
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={userLocation || colomboRegion}
+          showsUserLocation={true}
+          followsUserLocation={false}
+        >
+          {userLocation && (
+            <Marker
+              coordinate={{
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+              }}
+              title="Your Location"
+              pinColor="blue"
+            />
+          )}
 
-      <SelectMarkerContext.Provider value={{selectedMarker, setSelectedMarker, isMarkerTouched, setIsMarkerTouched, }}>
-      
-        <View>
-
-          <View style={styles.headerContainer}>
-            <Header onSearchFocus={handleSearchFocus}/>
-          </View>
-          
-          <TouchableWithoutFeedback onPress={handleMapTouch}>
-            <View>
-          {placeList&& <AppMapView placeList={placeList}  onMarkerTouch={handleMarkerTouch}/>}
-          </View>
-          </TouchableWithoutFeedback>
-
-          <View style={styles.placeListContainer}>
-            {isPlaceListVisible && placeList &&<PlaceListView placeList={placeList}/>}
-          </View>
-
-        </View>
-
-      </SelectMarkerContext.Provider>
-      
+          {placeList.map((place) => (
+            <Marker
+              key={place.StationID}
+              coordinate={{
+                latitude: place.Latitude,
+                longitude: place.Longitude,
+              }}
+              title={place.Name}
+              description={place.Location}
+              onPress={() => handleMarkerPress(place)}  // Navigate on marker press
+            />
+          ))}
+        </MapView>
+      </View>
     </SafeAreaView>
-    
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  headerContainer:{
-    position: 'absolute',
-    zIndex: 10,
-    padding: 40,
-    width: '100%',
-    paddingHorizontal: 10,
-    height: 120,
-    backgroundColor: '#161622',
-    alignContent: 'center',
-    justifyContent: 'center',
-  },
-
   safeArea: {
     flex: 1,
-    
   },
   container: {
     flex: 1,
   },
-
-  placeListContainer:{
-    position: 'absolute',
-    bottom: 0,
-    zIndex: 10,
-    width: '100%'
-  }
-  
-})
-
-
-
+  map: {
+    flex: 1,
+  },
+});

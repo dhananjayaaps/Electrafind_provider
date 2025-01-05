@@ -155,7 +155,7 @@ export default function Signup() {
       Alert.alert('Success', 'Charging station registered successfully!');
       console.log('Response data:', data);
   
-      navigation.navigate('Home'); // Navigate to the home screen
+      navigation.navigate('Login'); // Navigate to the home screen
     } catch (error) {
       console.error('Signup Error:', error);
       Alert.alert('Error', 'Unable to connect to the server.');

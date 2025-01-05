@@ -4,12 +4,25 @@ import { useRoute } from '@react-navigation/native';
 import CardSpace from '../../../components/CardSpace';
 import { StyleSheet } from 'react-native';
 import StarRating from '../../../components/StarRating';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function Info() {
 
   const route = useRoute();
-  const { place } = route.params;
-  console.log('place: ',place);
+  const { station } = route.params;
+  console.log('station log: ',station);
+  const rating = station?.Rating || 0; // Default rating to 0 if not available
+
+  const renderStars = (rating) => {
+    return [...Array(5)].map((_, index) => (
+      <Ionicons
+        key={index}
+        name={index < rating ? "star" : "star-outline"}
+        size={18}
+        color={"gold"}
+      />
+    ));
+  };
 
   return (
     <View>
@@ -17,10 +30,16 @@ export default function Info() {
       <CardSpace>
         <Text style={styles.title}>Rating:</Text>
           <View style={styles.infoContainer}>
-            {place?.rating ? (
-              <StarRating rating={place.rating} />
+            {station?.rating ? (
+              <StarRating rating={station.rating} />
             ) : (
-              <Text style={styles.contactText}>No rating available.</Text>
+              <View className="flex-row items-center space-x-1 mt-2">
+                <Ionicons name="star" color="gray" width="20" height="20" />
+                {renderStars(rating)}
+                <Text style={{ color: "gray", fontSize: 15 }} className="ml-2">
+                  {rating || "0"} / 5
+                </Text>
+              </View>
             )}
         </View>
       </CardSpace>
@@ -28,21 +47,27 @@ export default function Info() {
       <CardSpace>
         <Text style={styles.title}>Contact Info:</Text>
         <View style={styles.infoContainer}>
-          {place?.nationalPhoneNumber ? (
-            <Text style={styles.contactText}>Phone: {place.nationalPhoneNumber}</Text>
+          {/* Display Email if it exists */}
+          {station?.Email ? (
+            <Text style={styles.contactText}>Email: {station.Email}</Text>
           ) : (
-            <Text style={styles.contactText}>No contact information available.</Text>
+            <Text style={styles.contactText}>No email available.</Text>
+          )}
+
+          {/* Display Phone if it exists */}
+          {station?.Phone ? (
+            <Text style={styles.contactText}>Phone: {station.Phone}</Text>
+          ) : (
+            <Text style={styles.contactText}>No phone number available.</Text>
           )}
         </View>
       </CardSpace>
 
       <CardSpace>
       <Text style={styles.title}>Opening Hours:</Text>
-        {place?.currentOpeningHours?.weekdayDescriptions ? (
+        {station?.AvailableStartTime? (
           <View>
-            {place.currentOpeningHours.weekdayDescriptions.map((description, index) => (
-              <Text key={index} style={styles.hoursText}>{description}</Text>
-            ))}
+            <Text style={styles.hoursText}>{station.AvailableStartTime} - {station.AvailableEndTime}</Text>
           </View>
         ) : (
           <Text style={styles.hoursText}>No opening hours available.</Text>

@@ -35,17 +35,8 @@ export default function Header({onSearchFocus}) {
     }
   };
 
-  
-
   return (
-  
-    
       <View style={styles.container}>
-        
-        {/* <Image 
-          source={images.logoverticalshort}
-          style={{width:250,height:60,objectFit:'contain',}}
-        /> */}
 
         <View style={{display: 'flex',flexDirection:'row',justifyContent:'space-between'}}>
 
@@ -63,18 +54,7 @@ export default function Header({onSearchFocus}) {
             <IonIcons name="options-outline" size={30} color="#ffffff" style={{borderRadius:40,padding:6,backgroundColor: '#333333'}}/>
           </TouchableOpacity>
 
-        </View>
-        
-        {/* <BottomSheet
-          ref={bottomSheetRef}
-          snapPoints={[SNAP_POINT, 0]}
-          borderRadius={10}
-          renderContent={renderContent}
-        /> */}
-
-        {/* <DistanceSlider/> */}
-
-        
+        </View>  
       </View>
     
   )

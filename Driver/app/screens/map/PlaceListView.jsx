@@ -31,8 +31,6 @@ export default function PlaceListView({ placeList }) {
   return (
     <View>
       
-        
-        
         <FlatList
           data={placeList}
           horizontal={true}
@@ -47,7 +45,6 @@ export default function PlaceListView({ placeList }) {
           )}
         />
       
-     
     </View>
   );
 }
