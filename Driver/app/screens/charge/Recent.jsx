@@ -1,43 +1,151 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity} from 'react-native'
-import React from 'react'
+import React, { useState , useEffect} from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Button } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import { useNavigation } from '@react-navigation/native';
+import { Camera, useCameraPermissions, CameraView } from 'expo-camera';
+import { io } from 'socket.io-client';
+import { SOCKET_URL } from '@env';
 
 export default function Recent() {
+  const [scanned, setScanned] = useState(false);
+  const [scannedValue, setScannedValue] = useState('');
+  const [isScannerVisible, setIsScannerVisible] = useState(false);
+  const [facing, setFacing] = useState('back');
+  const [permission, requestPermission] = useCameraPermissions();
+  const [qrLock, setQrLock] = useState(false);
+  const [socket, setSocket] = useState(null);
 
   const navigation = useNavigation();
 
+  useEffect(() => {
+    const newSocket = io(SOCKET_URL, {
+      transports: ['websocket'],
+    });
+    newSocket.emit('register', { id: '2', role: 'client' });
+    setSocket(newSocket);
+    console.log('Socket connected');
+
+    return () => newSocket.disconnect();
+  }, [SOCKET_URL]);
+
+  if (!permission) {
+    return <View />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>We need your permission to show the camera</Text>
+        <Button onPress={requestPermission} title="Grant Permission" />
+      </View>
+    );
+  }
+
+  function toggleCameraFacing() {
+    setFacing(current => (current === 'back' ? 'front' : 'back'));
+  }
+
+  const handleBarCodeScanned = ({ data }) => {
+    setScannedValue(data);
+    setIsScannerVisible(false);
+    // Alert.alert('QR Code Scanned', `Data: ${data}`);
+    submitData(data);
+  };
+
+  const submitData = (qrCode) => {
+    if (socket) {
+      const dataToSend = {
+        clientName: 'Sineth',
+        qrCode: qrCode,
+        clientId: 1,
+      };
+      socket.emit('data', dataToSend);
+      // Alert.alert('Data Sent', JSON.stringify(dataToSend));
+    } else {
+      Alert.alert('Not connected');
+    }
+  };
+
   return (
-    
     <View style={styles.inputContainer}>
-        <Text style={styles.instructionText}>Please ENTER or SCAN charge point reference code</Text>
-        <View style={styles.inputRow}>
-          <TextInput style={styles.input} placeholder="Enter Reference" />
-          <TouchableOpacity>
-            <Ionicons name="qr-code-outline" size={24} color="black" />
+      {isScannerVisible ? (
+             <View style={styles.cameracontainer}>
+
+             <CameraView
+                style={styles.camera}
+                facing="back"
+                onBarcodeScanned={({ data }) => {
+                  if (data && !qrLock) {
+                    console.log(data)
+                    
+                    if (data.length !== 6) {
+                      console.log('Invalid QR Code');
+                      setQrLock(false);
+                    }
+                    else{
+                      setIsScannerVisible(false);
+                      // setQrLock(true);
+                      handleBarCodeScanned({ data });
+                    }
+                  }
+                }}
+              >
+              </CameraView>
+
+              {/* button to hide the camera */}
+              <TouchableOpacity
+                style={styles.toggleButton}
+                onPress={() => setIsScannerVisible(false)}
+              >
+                <Text style={{ color: 'white' }}>Hide Camera</Text>
+              </TouchableOpacity>
+          </View>
+      ) : (
+        <>
+          <Text style={styles.instructionText}>
+            Please ENTER or SCAN charge point reference code
+          </Text>
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Reference"
+              value={scannedValue}
+              onChangeText={setScannedValue}
+            />
+            <TouchableOpacity onPress={() => setIsScannerVisible(true)}>
+              <Ionicons name="qr-code-outline" size={24} color="black" />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.button} onPress={() => submitData(scannedValue)}>
+            <Text style={styles.buttonText}>START CHARGE</Text>
           </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('options')}>
-          <Text style={styles.buttonText}>START CHARGE</Text>
-        </TouchableOpacity>
-        <TouchableOpacity>
           <Video
             source={require('../../../assets/QR Code Scanning in Hand.mp4')}
             rate={0.2}
             volume={1.0}
-            isMuted={true}
+            isMuted
             resizeMode="contain"
             shouldPlay
             isLooping
             style={styles.video}
           />
-        </TouchableOpacity>
+        </>
+      )}
     </View>
-  )
+  );
+
 }
 
+
 const styles = StyleSheet.create({
+  camera: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   inputContainer: {
     padding: 20,
     paddingVertical: 30,
@@ -50,6 +158,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     marginVertical: 10,
     marginHorizontal: 8,
+    flex: 1,
   },
   instructionText: {
     fontSize: 18,
@@ -88,5 +197,27 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     marginTop: 2,
-  }
-})
+  },
+  toggleButton: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 10,
+    borderRadius: 5,
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  message: {
+    textAlign: 'center',
+    paddingBottom: 10,
+  },
+  cameracontainer: {
+    flex: 1,
+    height: 300,
+    backgroundColor: 'black',
+  },
+});
