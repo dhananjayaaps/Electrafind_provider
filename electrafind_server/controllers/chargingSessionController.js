@@ -116,6 +116,7 @@ exports.deleteChargingSession = async (req, res) => {
 
 exports.startSession = async (req, res) => {
   try {
+    console.log('Request body:', req.body);
     const { sessionID, unitPrice, chargeType, fixedChargingTime } = req.body;
 
     if (!sessionID || !unitPrice || !chargeType || isNaN(fixedChargingTime) || fixedChargingTime <= 0) {
@@ -132,10 +133,18 @@ exports.startSession = async (req, res) => {
       return res.status(400).json({ message: 'Cannot start session. Invalid status.' });
     }
 
+    if (session.chargeType === 'level1'){
+      session.chargeType = 'Level 1';
+    } else if (session.chargeType === 'level2'){
+      session.chargeType = 'Level 2';
+    } else if (session.chargeType === 'level3'){
+      session.chargeType = 'Level 3';
+    }
+
     session.StartTime = new Date();
     session.Status = 'Ongoing';
     session.Cost = parseFloat(unitPrice);
-    session.ChargeType = chargeType;
+    // session.ChargeType = chargeType;
     session.fixedChargingTime = parseInt(fixedChargingTime);
     session.TotalTime = fixedChargingTime * 60; // Convert minutes to seconds
     await session.save();

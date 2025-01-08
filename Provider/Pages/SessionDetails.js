@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Svg, { Circle } from 'react-native-svg';
 import { API_URL } from '@env';
@@ -17,6 +17,8 @@ export default function SessionDetails({ route, navigation }) {
   const [fixedChargingTime, setFixedChargingTime] = useState('');
   const [chargingPrices, setChargingPrices] = useState(null);
   const [sessionDetails, setSessionDetails] = useState(null);
+
+  let timer;
 
 
   useEffect(() => {
@@ -70,6 +72,7 @@ export default function SessionDetails({ route, navigation }) {
   
     try {
       const token = await AsyncStorage.getItem('userToken');
+      console.log(chargingPrices, fixedChargingTime, chargeType, sessionId);
       const response = await fetch(`${API_URL}/sessions/startSession`, {
         method: 'POST',
         headers: {
@@ -90,10 +93,11 @@ export default function SessionDetails({ route, navigation }) {
   
       const data = await response.json();
       if (data.success) {
-        setStatus(data.session.status);
+        setStatus(data.session.status); // Set status to 'Ongoing'
         setRemainingTime(data.session.totalTime);
         setElapsedTime(0);
         setCost(0);
+        initializeSession(); // Start the timer immediately
         Alert.alert('Session Started', `Charging session started with ${chargeType}.`);
       } else {
         Alert.alert('Error', 'Failed to start the session.');
@@ -104,9 +108,12 @@ export default function SessionDetails({ route, navigation }) {
     }
   };
   
+  // make use effect for update selected time
   useEffect(() => {
-    let timer;
-  
+    console.log('selectedTime:', selectedTime);
+  }, [selectedTime]);
+
+  useEffect(() => {
     const initializeSession = () => {
       if (status === 'Ongoing') {
         try {
@@ -115,8 +122,8 @@ export default function SessionDetails({ route, navigation }) {
             const sessionStartTime = new Date(session.startTime);
   
             const elapsed = Math.floor((currentTime - sessionStartTime) / 1000); // Time in seconds
-            const totalTime = session.fixedChargingTime || session.fixedChargingTime * 60; // Use totalTime if available
-            const remaining = Math.max(fixedChargingTime - elapsed, 0);
+            const totalTime = fixedChargingTime * 60; // Convert minutes to seconds
+            const remaining = Math.max(totalTime - elapsed, 0);
   
             setElapsedTime(elapsed);
             setRemainingTime(remaining);
@@ -139,9 +146,8 @@ export default function SessionDetails({ route, navigation }) {
   
     initializeSession();
   
-    // Cleanup interval on unmount
-    return () => clearInterval(timer);
-  }, [status, session.startTime, chargeType, chargingPrices, session.totalTime, session.fixedChargingTime]);  
+    return () => clearInterval(timer); // Cleanup
+  }, [status, fixedChargingTime, chargeType, chargingPrices]);
   
 
   const getProgress = () => {
@@ -282,6 +288,7 @@ export default function SessionDetails({ route, navigation }) {
   
   
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={styles.container}>
       <Text style={styles.headerText}>Session Details</Text>
       <View style={styles.infoContainer}>
@@ -322,9 +329,15 @@ export default function SessionDetails({ route, navigation }) {
               onValueChange={(itemValue) => setChargeType(itemValue)}
               style={styles.picker}
             >
-              <Picker.Item label="Select Charger Type" value={null} />
+               <Picker.Item label="Select Charger Type" value={null} />
+              {chargingPrices && chargingPrices.level1.active && (
+                <Picker.Item label="Level 1" value="level1" />
+              )}
               {chargingPrices && chargingPrices.level2.active && (
                 <Picker.Item label="Level 2" value="level2" />
+              )}
+              {chargingPrices && chargingPrices.level3.active && (
+                <Picker.Item label="Level 3" value="level3" />
               )}
             </Picker>
             <TextInput
@@ -334,6 +347,8 @@ export default function SessionDetails({ route, navigation }) {
               keyboardType="numeric"
               value={fixedChargingTime}
               onChangeText={(text) => setFixedChargingTime(text)}
+              blurOnSubmit={true} // Ensure keyboard dismisses on submit
+              onSubmitEditing={Keyboard.dismiss}
             />
           </>
         )}
@@ -399,6 +414,7 @@ export default function SessionDetails({ route, navigation }) {
       )}
 
     </View>
+    </TouchableWithoutFeedback>
   );
   
 }
