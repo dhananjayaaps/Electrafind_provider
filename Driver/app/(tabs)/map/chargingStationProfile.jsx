@@ -82,14 +82,6 @@ export default function ChargingStationProfile() {
             <Text className="text-3xl font-bold">
               {station.Name}
             </Text>
-{/* 
-            <View className="flex-row items-center space-x-1 mt-2">
-              <Ionicons name="star" color="gray" width="20" height="20" />
-              {renderStars(rating)}
-              <Text style={{ color: "gray", fontSize: 15 }} className="ml-2">
-                {rating || "0"} / 5
-              </Text>
-            </View> */}
 
             <View className="flex-row items-center space-x-1 mt-2">
               <Ionicons name="location" color="gray" width="20" height="20" />
@@ -101,24 +93,8 @@ export default function ChargingStationProfile() {
               </Text>
             </View>
 
-            {/* <View className="flex-row items-center space-x-1">
-              <Ionicons name="mail" color="gray" width="20" height="20" />
-              <Text
-                style={{ color: "gray", fontSize: 15 }}
-                className="font-pmedium"
-              >
-                {station.Email}
-              </Text>
-            </View> */}
-
             <View className="flex-row items-center space-x-1 mt-5">
-              {/* <Ionicons name="time" color="gray" width="20" height="20" /> */}
-              {/* <Text
-                style={{ color: "gray", fontSize: 15 }}
-                className="font-pmedium"
-              > */}
-                {/* {`Opening Hours: ${station.AvailableStartTime} - ${station.AvailableEndTime}`} */}
-              {/* </Text> */}
+              
             </View>
           </View>
         </View>

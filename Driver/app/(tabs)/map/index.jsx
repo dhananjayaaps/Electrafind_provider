@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Alert, StyleSheet } from 'react-native';
+import { View, Alert, StyleSheet, Text, Image, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SearchBar } from 'react-native-elements';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import axios from 'axios';
@@ -10,6 +11,9 @@ import { getDistance } from 'geolib';
 export default function MapScreen({ navigation }) {
   const [userLocation, setUserLocation] = useState(null);
   const [placeList, setPlaceList] = useState([]);
+  const [filteredPlaces, setFilteredPlaces] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [nearestStations, setNearestStations] = useState([]);
   const mapRef = useRef(null);
 
   const colomboRegion = {
@@ -34,17 +38,14 @@ export default function MapScreen({ navigation }) {
 
   useEffect(() => {
     getCurrentLocation();
+    fetchStations();
   }, []);
 
   useEffect(() => {
-    if (placeList.length === 0) {
-      const interval = setInterval(() => {
-        fetchStations();
-      }, 10000);
-
-      return () => clearInterval(interval);
+    if (userLocation && placeList.length > 0) {
+      findNearestStations();
     }
-  }, []);
+  }, [userLocation, placeList]);
 
   const getCurrentLocation = async () => {
     const hasPermission = await requestLocationPermission();
@@ -68,48 +69,53 @@ export default function MapScreen({ navigation }) {
 
   const fetchStations = async () => {
     try {
-      // console.log('Fetching stations...');
       const response = await axios.get(`${API_URL}/stations`);
       setPlaceList(response.data);
+      setFilteredPlaces(response.data);
     } catch (error) {
       console.error('Error fetching stations:', error);
     }
   };
 
-  const findNearestStation = () => {
-    if (!userLocation || placeList.length === 0) return;
-
-    let nearestStation = null;
-    let nearestDistance = Infinity;
-
-    placeList.forEach((place) => {
-      const distance = getDistance(
+  const findNearestStations = () => {
+    const distances = placeList.map((place) => ({
+      ...place,
+      distance: getDistance(
         { latitude: userLocation.latitude, longitude: userLocation.longitude },
         { latitude: place.Latitude, longitude: place.Longitude }
-      );
+      ),
+    }));
 
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestStation = place;
-      }
-    });
-
-    if (nearestStation) {
-      const newRegion = {
-        latitude: nearestStation.Latitude,
-        longitude: nearestStation.Longitude,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      };
-      mapRef.current?.animateToRegion(newRegion, 1000);
-    }
+    const sortedByDistance = distances.sort((a, b) => a.distance - b.distance);
+    setNearestStations(sortedByDistance.slice(0, 3)); // Select 3 nearest stations
   };
 
-  useEffect(() => {
-    if (userLocation && placeList.length > 0) {
-      findNearestStation();
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query) {
+      const filtered = placeList.filter((place) =>
+        place.Name.toLowerCase().includes(query.toLowerCase()) ||
+        place.Location.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredPlaces(filtered);
+
+      if (filtered.length > 0) {
+        const { Latitude, Longitude } = filtered[0];
+        const newRegion = {
+          latitude: Latitude,
+          longitude: Longitude,
+          latitudeDelta: 0.1,
+          longitudeDelta: 0.1,
+        };
+        mapRef.current?.animateToRegion(newRegion, 1000);
+      }
+    } else {
+      setFilteredPlaces(placeList);
+      if (userLocation) {
+        mapRef.current?.animateToRegion(userLocation, 1000); // Reset to user location
+      }
     }
-  }, [userLocation, placeList]);
+  };
 
   const handleMarkerPress = (place) => {
     navigation.navigate('chargingStationProfile', {
@@ -117,10 +123,34 @@ export default function MapScreen({ navigation }) {
     });
   };
 
+  const renderStationCard = ({ item }) => (
+    <TouchableOpacity
+      style={styles.stationCard}
+      onPress={() => handleMarkerPress(item)}
+    >
+      <Image
+        source={{ uri: item.ImageUrl }}
+        style={styles.stationImage}
+      />
+      <View style={styles.stationInfo}>
+        <Text style={styles.stationName}>{item.Name}</Text>
+        <Text style={styles.stationLocation}>{item.Location}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   if (!userLocation) return "loading";
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <SearchBar
+        placeholder="Search by station or city..."
+        value={searchQuery}
+        onChangeText={handleSearch}
+        platform="default"
+        containerStyle={styles.searchContainer}
+        inputContainerStyle={styles.searchInput}
+      />
       <View style={styles.container}>
         <MapView
           ref={mapRef}
@@ -140,7 +170,7 @@ export default function MapScreen({ navigation }) {
             />
           )}
 
-          {placeList.map((place) => (
+          {filteredPlaces.map((place) => (
             <Marker
               key={place.StationID}
               coordinate={{
@@ -149,10 +179,17 @@ export default function MapScreen({ navigation }) {
               }}
               title={place.Name}
               description={place.Location}
-              onPress={() => handleMarkerPress(place)}  // Navigate on marker press
+              onPress={() => handleMarkerPress(place)}
             />
           ))}
         </MapView>
+        <FlatList
+          data={nearestStations}
+          horizontal
+          keyExtractor={(item) => item.StationID.toString()}
+          renderItem={renderStationCard}
+          style={styles.slideBar}
+        />
       </View>
     </SafeAreaView>
   );
@@ -167,5 +204,44 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  searchContainer: {
+    backgroundColor: 'white',
+    borderBottomColor: 'transparent',
+    borderTopColor: 'transparent',
+    paddingHorizontal: 10,
+  },
+  searchInput: {
+    backgroundColor: '#f2f2f2',
+    borderRadius: 10,
+  },
+  slideBar: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+  },
+  stationCard: {
+    width: 250,
+    marginHorizontal: 10,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    overflow: 'hidden',
+    elevation: 3,
+  },
+  stationImage: {
+    width: '100%',
+    height: 120,
+  },
+  stationInfo: {
+    padding: 10,
+  },
+  stationName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  stationLocation: {
+    fontSize: 14,
+    color: 'gray',
   },
 });
