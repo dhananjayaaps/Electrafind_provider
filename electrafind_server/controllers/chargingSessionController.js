@@ -48,7 +48,7 @@ exports.getMychargingSessions = async (req, res) => {
     const sessions = await chargingSession.findAll({
       where: {
         Status: {
-          [Op.in]: ['New', 'Ongoing', 'Completed'],
+          [Op.in]: ['New', 'Ongoing', 'Completed', 'Closed'],
         },
         userId: 1,
       },
