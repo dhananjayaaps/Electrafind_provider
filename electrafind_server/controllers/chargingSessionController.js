@@ -43,6 +43,47 @@ exports.getAllChargingSessions = async (req, res) => {
   }
 };
 
+exports.getMychargingSessions = async (req, res) => {
+  try {
+    const sessions = await chargingSession.findAll({
+      where: {
+        Status: {
+          [Op.in]: ['New', 'Ongoing', 'Completed'],
+        },
+        userId: 1,
+      },
+      include: [
+        {
+          model: user,
+          as: 'user',
+          attributes: ['Name'],
+        },
+      ],
+    });
+
+    if (sessions.length === 0) {
+      return res.status(404).json({ message: 'No sessions found.' });
+    }
+
+    const sessionData = sessions.map(session => ({
+      sessionId: session.SessionID,
+      userName: session.user.Name,
+      chargeType: session.ChargeType,
+      status: session.Status,
+      startTime: session.StartTime,
+      endTime: session.EndTime,
+      cost: session.Cost,
+      totalTime: session.TotalTime,
+      fixedChargingTime: session.fixedChargingTime,
+    }));
+
+    res.status(200).json(sessionData);
+  } catch (error) {
+    console.error('Error fetching sessions:', error);
+    res.status(500).json({ message: 'An error occurred while fetching sessions.' });
+  }
+};
+
 // Get charging session by ID
 exports.getChargingSessionById = async (req, res) => {
   try {

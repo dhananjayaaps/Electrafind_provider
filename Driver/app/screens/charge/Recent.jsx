@@ -50,6 +50,7 @@ export default function Recent() {
       setLoading(false); // Stop loading spinner
       console.log(response);
       Alert.alert('Success', 'Session Started successfully!');
+      navigation.navigate('options')
     });
 
     return () => {

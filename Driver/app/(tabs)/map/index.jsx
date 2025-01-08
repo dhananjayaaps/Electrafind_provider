@@ -68,7 +68,7 @@ export default function MapScreen({ navigation }) {
 
   const fetchStations = async () => {
     try {
-      console.log('Fetching stations...');
+      // console.log('Fetching stations...');
       const response = await axios.get(`${API_URL}/stations`);
       setPlaceList(response.data);
     } catch (error) {

@@ -4,6 +4,7 @@ const chargingSessionController = require('../controllers/chargingSessionControl
 const providerProtect = require('../middlewares/providerMiddleware');
 
 router.get('/', providerProtect, chargingSessionController.getAllChargingSessions);
+router.get('/mysessions', chargingSessionController.getMychargingSessions);
 router.post('/startSession', providerProtect, chargingSessionController.startSession);
 router.post('/endSession', providerProtect, chargingSessionController.stopSession);
 router.get('/earnings', providerProtect, chargingSessionController.getClosedChargingSessions);
