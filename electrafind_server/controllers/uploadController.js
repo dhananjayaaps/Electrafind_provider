@@ -8,7 +8,8 @@ const uploadImage = (req, res) => {
     }
   
     // Construct the file URL
-    const fileUrl = `http://localhost:3000/api/uploads/${req.file.filename}`;
+    // const fileUrl = `http://localhost:3000/api/uploads/${req.file.filename}`;
+    const fileUrl = `${req.protocol}://${req.get('host')}/api/uploads/${req.file.filename}`;
     res.json({ url: fileUrl });
   };
   
