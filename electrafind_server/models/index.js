@@ -16,6 +16,7 @@ const MarketplaceModel = require('./marketPlace');
 const sequelize = new Sequelize('electrafind', 'postgres', 'password', {
   host: 'localhost',
   dialect: 'postgres',
+  logging: false,
 });
 
 // Initialize Models

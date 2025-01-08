@@ -1,11 +1,12 @@
-import React, { useState , useEffect} from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Button } from 'react-native';
+import React, { useState , useEffect, useRef} from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Button, ActivityIndicator, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import { useNavigation } from '@react-navigation/native';
 import { Camera, useCameraPermissions, CameraView } from 'expo-camera';
 import { io } from 'socket.io-client';
 import { SOCKET_URL } from '@env';
+// import { Ionicons } from '@expo/vector-icons';
 
 export default function Recent() {
   const [scanned, setScanned] = useState(false);
@@ -15,19 +16,47 @@ export default function Recent() {
   const [permission, requestPermission] = useCameraPermissions();
   const [qrLock, setQrLock] = useState(false);
   const [socket, setSocket] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const socketRef = useRef(null);
 
   const navigation = useNavigation();
 
   useEffect(() => {
-    const newSocket = io(SOCKET_URL, {
-      transports: ['websocket'],
-    });
-    newSocket.emit('register', { id: '2', role: 'client' });
-    setSocket(newSocket);
-    console.log('Socket connected');
 
-    return () => newSocket.disconnect();
-  }, [SOCKET_URL]);
+    const socket = io(SOCKET_URL, {
+      transports: ["websocket"],
+    });
+
+    setSocket(socket);
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("Socket.IO connected with ID:", socket.id);
+      socket.emit("register", { id: '1', role: 'client' });
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Socket.IO disconnected");
+    });
+
+    socket.on('session-error', (response) => {
+      console.log(response);
+      setLoading(false); // Stop loading spinner
+      Alert.alert('Error', 'Session Rejected by the provider!');
+    });
+
+    socket.on('session-start', (response) => {
+      setLoading(false); // Stop loading spinner
+      console.log(response);
+      Alert.alert('Success', 'Session Started successfully!');
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+
+  }, [SOCKET_URL, isScannerVisible]);
 
   if (!permission) {
     return <View />;
@@ -60,12 +89,29 @@ export default function Recent() {
         qrCode: qrCode,
         clientId: 1,
       };
-      socket.emit('data', dataToSend);
-      // Alert.alert('Data Sent', JSON.stringify(dataToSend));
+      socket.emit('scan-qr', dataToSend);
+      Alert.alert('Data Sent', JSON.stringify(dataToSend));
     } else {
       Alert.alert('Not connected');
     }
+
+    setLoading(true);
   };
+
+  if(loading){
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Submitting Data...</Text>
+        </View>
+        {/* make a button for stop loading */}
+        <TouchableOpacity style={styles.button} onPress={() => setLoading(false)}>
+          <Text style={styles.buttonText}>Stop Loading</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.inputContainer}>
@@ -187,6 +233,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 15,
     elevation: 10,
+    paddingHorizontal: 20,
   },
   buttonText: {
     color: '#fff',

@@ -9,25 +9,32 @@ function initWebSocket(server) {
     },
   });
 
-  const clients = new Map(); // Store Socket.IO clients (user/provider)
+  const clients = new Map(); // Store Socket.IO clients (client/provider)
+  const provider = new Map();
   const qrCodeProviderMap = new Map();
   const sessions = new Map();
 
   io.on("connection", (socket) => {
     console.log("New client connected");
 
-    // Register user or provider
+    // Register client or provider
     socket.on("register", (data) => {
       const { id, role } = data;
-      clients.set(id, { socket, role });
+      // clients.set(id, { socket, role });
+      if (role === "client") {
+        clients.set(id, { socket, role });
+      }
+      if (role === "provider") {
+        provider.set(id, { socket, role });
+      }
       console.log(`${role} registered with ID: ${id}`);
-      console.log(clients);
     });
 
     // Handle QR Code Scan by Client
     socket.on("scan-qr", async ({ qrCode, clientId, clientName }) => {
       console.log(`Client ${clientId} scanned QR code: ${qrCode}`);
-    
+      console.log('Clientes:', clients);
+      console.log('Provider:', provider);
       try {
         const existingStation = await chargingStation.findOne({ where: { VerificationCode: qrCode } });
     
@@ -41,8 +48,8 @@ function initWebSocket(server) {
           socket.emit("session-error", { message: "Provider not found for this QR code." });
           return;
         }
-    
-        const providerClient = clients.get(providerId.toString());
+
+        const providerClient = provider.get(providerId.toString());
     
         if (providerClient) {
           // Create a new session ID
@@ -78,11 +85,13 @@ function initWebSocket(server) {
         try {
         // Find the session from the database
         const session = await chargingSession.findOne({ where: { SessionID: sessionNumber } });
-    
+        console.log("Session found:", session, "\n\n");
         if (!session) {
             socket.emit("session-error", { message: "Session not found." });
             return;
         }
+
+        const clientSocket = clients.get(session.userId.toString());
     
         if (accept) {
             session.status = "New"; // Update session status to 'New'
@@ -92,21 +101,10 @@ function initWebSocket(server) {
             { Status: "New" }, // Update the status to 'New'
             { where: { SessionID: sessionNumber } }
             );
-    
-            // Find the relevant client and provider from the clients map
-            const clientSocket = [...clients.values()].find(
-            (client) => client.role === "user" && client.socket.id === session.clientId
-            );
-            const providerSocket = [...clients.values()].find(
-            (client) => client.role === "provider" && client.socket.id === session.providerId
-            );
-    
+
             // Notify the client and provider about the session start
             if (clientSocket) {
             clientSocket.socket.emit("session-start", { sessionId, message: "Your charging session has started." });
-            }
-            if (providerSocket) {
-            providerSocket.socket.emit("session-start", { sessionId, message: "Charging session has started." });
             }
     
             console.log("Session status updated to 'New' and session started:", session);
@@ -114,10 +112,19 @@ function initWebSocket(server) {
             // Decline the session and delete it from the sessions map
             const deletedSession = chargingSession.destroy({ where: { SessionID: sessionNumber } });
             socket.emit("session-error", { message: "Session request declined." });
+            // console.log("Session User ID:", session.userId, "\n\n");
+            // console.log("Clients Map:", clients, "\n\n");
+            if (clientSocket) {
+              clientSocket.socket.emit("session-error", { sessionId, message: "Your charging session has started." });
+              console.log("Send the cancellation", clientSocket.socket);
+            }
         }
         } catch (error) {
-        console.error("Error handling session acceptance:", error);
-        socket.emit("session-error", { message: "An error occurred while processing your request." });
+          
+          socket.emit("session-error", { message: "An error occurred while processing your request." });
+          if (clientSocket) {
+            clientSocket.socket.emit("session-error", { sessionId, message: "Your charging session has Caccelled." });
+          }
         }
     });
   
@@ -125,12 +132,24 @@ function initWebSocket(server) {
     // Handle disconnection
     socket.on("disconnect", () => {
       console.log("Client disconnected");
-      [...clients.entries()].forEach(([key, client]) => {
-        if (client.socket === socket) {
+      
+      // Remove the disconnected client from `clients`
+      for (const [key, value] of clients.entries()) {
+        if (value.socket === socket) {
           clients.delete(key);
+          break;
         }
-      });
+      }
+    
+      // Remove the disconnected provider from `provider`
+      for (const [key, value] of provider.entries()) {
+        if (value.socket === socket) {
+          provider.delete(key);
+          break;
+        }
+      }
     });
+    
   });
 
   console.log("Socket.IO server initialized.");
