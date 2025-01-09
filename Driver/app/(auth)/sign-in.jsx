@@ -5,7 +5,6 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from '@react-navigation/native';
-
 import { images } from "../../constants";
 import CustomButton from "../../components/CustomButton";
 import FormField from "../../components/FormField";
@@ -29,10 +28,12 @@ const SignIn = () => {
 
     setIsSubmitting(true);
     try {
+      console.log("API_URL", API_URL);
       const response = await axios.post(`${API_URL}/users/login`, {
         Email: form.email,
         Password: form.password,
       });
+      console.log("Sign-in response:", response);
 
       const { user, token } = response.data;
 
@@ -45,7 +46,7 @@ const SignIn = () => {
       Alert.alert("Success", "Sign-in successful!");
       navigation.navigate("index"); // Ensure you're navigating to a valid route in your stack
     } catch (error) {
-      console.error("Sign-in error:", error);
+      // console.error("Sign-in error:", error);
       Alert.alert("Error", "Failed to sign in. Please check your credentials.");
     } finally {
       setIsSubmitting(false);
