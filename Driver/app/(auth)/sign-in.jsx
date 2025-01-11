@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { images } from "../../constants";
 import CustomButton from "../../components/CustomButton";
 import FormField from "../../components/FormField";
-import { API_URL } from "@env";
+import { API_URL } from "@env"; 
 
 const SignIn = () => {
   const navigation = useNavigation(); 
@@ -44,7 +44,7 @@ const SignIn = () => {
       await AsyncStorage.setItem("userToken", token);
 
       Alert.alert("Success", "Sign-in successful!");
-      navigation.navigate("index"); // Ensure you're navigating to a valid route in your stack
+      navigation.replace("MapLayout"); // Ensure you're navigating to a valid route in your stack
     } catch (error) {
       // console.error("Sign-in error:", error);
       Alert.alert("Error", "Failed to sign in. Please check your credentials.");

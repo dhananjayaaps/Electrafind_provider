@@ -1,0 +1,124 @@
+/* General container styling */
+.profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    color: #333;
+}
+
+/* Profile view */
+.profile-view {
+    text-align: center;
+    min-width: 500px;
+}
+
+.profile-view h2 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #4caf50;
+}
+
+/* Profile image */
+.profile-image img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #4caf50;
+    margin-bottom: 20px;
+}
+
+/* Profile details */
+.profile-details {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.profile-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.profile-field label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.profile-field span {
+    font-size: 1rem;
+    color: #333;
+}
+
+.profile-field input,
+.profile-field select {
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.profile-field input:focus,
+.profile-field select:focus {
+    outline: none;
+    border-color: #4caf50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+/* Error messages */
+.error-messages {
+    margin-top: 10px;
+}
+
+.error-message {
+    color: #d9534f;
+    font-size: 0.9rem;
+}
+
+/* Buttons */
+.profile-actions {
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+    background-color: #4caf50;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #45a049;
+}
+
+.signout-btn {
+    background-color: #d9534f;
+}
+
+.signout-btn:hover {
+    background-color: #c9302c;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .profile-container {
+        padding: 15px;
+    }
+
+    .btn {
+        width: 100%;
+        margin: 10px 0;
+    }
+}

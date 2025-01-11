@@ -9,7 +9,7 @@ module.exports = (sequelize) => {
       autoIncrement: true,
     },
     UserType: {
-      type: DataTypes.ENUM('VehicleUser', 'GeneralUser', 'Administrator', 'StationHost'),
+      type: DataTypes.STRING,
       allowNull: false,
     },
     Name: {
@@ -30,6 +30,9 @@ module.exports = (sequelize) => {
     },
     Address: {
       type: DataTypes.TEXT,
+    },
+    ImageUrl: {
+      type: DataTypes.STRING,
     },
   });
 

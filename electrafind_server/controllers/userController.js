@@ -25,7 +25,7 @@ exports.getUserById = async (req, res) => {
 
 // Create a new user
 exports.createUser = async (req, res) => {
-  const { UserType, Name, Email, Password, PhoneNumber, Address } = req.body;
+  const { UserType, Name, Email, Password, PhoneNumber, Address, ImageUrl } = req.body;
 
   try {
     const newUser = await user.create({
@@ -35,6 +35,7 @@ exports.createUser = async (req, res) => {
       PasswordHash: Password, // Pass the plain password (it will be hashed automatically)
       PhoneNumber,
       Address,
+      ImageUrl,
     });
 
     res.status(201).json({
@@ -68,7 +69,7 @@ exports.signIn = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: foundUser.UserID, email: foundUser.Email },
+      { userId: foundUser.UserID},
       process.env.JWT_SECRET,
       { expiresIn: '12h' }
     );
@@ -92,7 +93,7 @@ exports.signIn = async (req, res) => {
 // Update a user
 exports.updateUser = async (req, res) => {
   try {
-    const updated = await user.update(req.body, { where: { UserID: req.params.id } });
+    const updated = await user.update(req.body, { where: { UserID: req.user.UserID } });
     res.json({ updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -108,3 +109,13 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getUserprofile = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}

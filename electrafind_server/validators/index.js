@@ -7,6 +7,8 @@ const initWebSocket = require('./socket'); // Import the WebSocket logic
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+app.use(cors());
+
 // Base API route
 app.use('/api', routes);
 
