@@ -19,11 +19,11 @@ export default function ChargeScreen({route}) {
   const fetchSessions = async () => {
     try {
       // Retrieve the token from AsyncStorage
-      // const token = await AsyncStorage.getItem('userToken');
+      const token = await AsyncStorage.getItem('userToken');
 
-      // if (!token) {
-      //   throw new Error('No token found in AsyncStorage');
-      // }
+      if (!token) {
+        throw new Error('No token found in AsyncStorage');
+      }
 
       // Make the API call with the token in the Authorization header
       console.log('API_URL:', API_URL);
@@ -31,10 +31,10 @@ export default function ChargeScreen({route}) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-      console.log('Response:', response);
+      console.log('Response:', response.data);
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);

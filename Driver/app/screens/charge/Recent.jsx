@@ -18,8 +18,23 @@ export default function Recent() {
   const [socket, setSocket] = useState(null);
   const [loading, setLoading] = useState(false);
   const socketRef = useRef(null);
+  const [userID, setUserID] = useState();
 
   const navigation = useNavigation();
+
+  useEffect(() => {
+    const fetchUserID = async () => {
+      try {
+        const userID = await AsyncStorage.getItem('userID');
+        setUserID(userID);
+      } catch (error) {
+        console.error('Error fetching user ID:', error);
+      }
+    };
+
+    fetchUserID();
+  }, []);
+
 
   useEffect(() => {
 
@@ -33,7 +48,7 @@ export default function Recent() {
 
     socket.on("connect", () => {
       console.log("Socket.IO connected with ID:", socket.id);
-      socket.emit("register", { id: '1', role: 'client' });
+      socket.emit("register", { id: userID.toString(), role: 'client' });
     });
 
     socket.on("disconnect", () => {
@@ -57,7 +72,8 @@ export default function Recent() {
       socket.disconnect();
     };
 
-  }, [SOCKET_URL, isScannerVisible]);
+  }, [SOCKET_URL, isScannerVisible, userID]);
+
 
   if (!permission) {
     return <View />;
