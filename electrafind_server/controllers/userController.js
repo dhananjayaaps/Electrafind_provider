@@ -110,6 +110,7 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+
 exports.getUserprofile = async (req, res) => {
   try {
     const user = req.user;
@@ -119,3 +120,24 @@ exports.getUserprofile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 }
+
+//make a endpoint for get the all mechanics
+exports.getAllMechanics = async (req, res) => {
+  try {
+    const mechanics = await user.findAll({ where: { UserType: 'Mechanics'  } });
+    res.json(mechanics);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+//make a endpoint for get the all garages
+exports.getAllGarages = async (req, res) => {
+  try {
+    const garages = await user.findAll({ where: { UserType: ['Garage', 'Mechanics'] } });
+    res.json(garages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

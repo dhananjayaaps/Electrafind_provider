@@ -7,12 +7,13 @@ const categories = [
   {
     name: 'Service Stations',
     icon: 'local-gas-station',
-    value: 'service-station',
+    value: 'Garage',
   },
   {
     name: 'Mechanics',
     icon: 'build',
-    value: 'mechanic',
+    value: 'Mechanics',
+    
   },
 ];
 

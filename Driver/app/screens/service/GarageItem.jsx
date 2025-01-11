@@ -1,7 +1,7 @@
 import { View, Text, Image, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
 import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import images from '../../../constants/images'; // Make sure you have appropriate default images
+import images from '../../../constants/images';
 
 const screenWidth = Dimensions.get('screen').width;
 
@@ -10,16 +10,14 @@ export default function GarageCard({ garage, onPress }) {
     <TouchableOpacity style={styles.cardContainer} onPress={() => onPress(garage)}>
       <LinearGradient colors={['transparent', '#ffffff']}>
         <Image
-          source={garage?.images?.length > 0 ? { uri: garage.images[0] } : images.serviceImage} // Use a default image if none are provided
+          source={garage?.ImageUrl ? { uri: garage.ImageUrl } : images.serviceImage}
           style={styles.image}
         />
         <View style={styles.infoContainer}>
-          <View className="flex-row items-center space-x-1 mt-2">
-            <Text style={styles.title}>{garage.name}</Text>
-            <Text style={styles.title}>{garage.type}</Text>
-          </View>
-          <Text style={styles.subtitle}>{garage.location}</Text>
-          <Text style={styles.subtitle}>{garage.contactNumber}</Text>
+          <Text style={styles.title}>{garage.Name}</Text>
+          <Text style={styles.subtitle}>{garage.UserType}</Text>
+          <Text style={styles.subtitle}>{garage.Address}</Text>
+          <Text style={styles.subtitle}>{garage.PhoneNumber}</Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -28,9 +26,9 @@ export default function GarageCard({ garage, onPress }) {
 
 const styles = StyleSheet.create({
   cardContainer: {
-    width: screenWidth * 0.90,
+    width: screenWidth * 0.9,
     backgroundColor: '#ffffff',
-    marginVertical: 5, // Adjust the vertical margin to control spacing between cards
+    marginVertical: 5,
     borderRadius: 10,
     padding: 0,
   },

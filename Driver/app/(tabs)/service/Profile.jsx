@@ -1,192 +1,225 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Linking, Share } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Linking, Share, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import images from '../../../constants/images'; // Ensure you have a default image for garages
 
 export default function GarageDetailProfile({ route }) {
-
   const navigation = useNavigation();
+  const [garage, setGarage] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const { garage } = route.params;
+  useEffect(() => {
+    // Simulate fetching data from params
+    const fetchGarage = async () => {
+      try {
+        const garageData = route.params;
+        setGarage(garageData.garage || {}); // Default to an empty object if no data
+        // console.log("showing garage is", garage.garage);  
+      } catch (error) {
+        console.error('Error fetching garage data:', error);
+      } finally {
+        setLoading(false);
+        console.log("garage is", garage);
+      }
+    };
+
+    fetchGarage();
+  }, [route.params]);
 
   const handleCallPress = (phoneNumber) => {
-    Linking.openURL(`tel:${phoneNumber}`);
+    if (phoneNumber) {
+      Linking.openURL(`tel:${phoneNumber}`).catch((err) =>
+        alert("Unable to make a call. Please check the phone number.")
+      );
+    } else {
+      alert("Phone number is not available.");
+    }
   };
 
   const handleSharePress = async () => {
     try {
       await Share.share({
-        message: `Check out this garage: ${garage.name} located at ${garage.location}. Contact: ${garage.contactNumber}.`,
+        message: `Check out this garage: ${garage?.Name || 'N/A'} located at ${garage?.Address || 'N/A'}. Contact: ${garage?.PhoneNumber || 'N/A'}.`,
       });
     } catch (error) {
-      alert(error.message);
+      alert("Unable to share at the moment. Please try again.");
     }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>Loading garage details...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View>
+    <View style={styles.container}>
       <ScrollView>
-        <View className="relative">
-          <Image 
-            source={garage?.images?.length > 0 ? { uri: garage.images[0] } : images.serviceImage} 
-            style={styles.image} 
+        <View style={styles.imageContainer}>
+          <Image
+            source={garage?.ImageUrl ? { uri: garage.ImageUrl } : images.serviceImage}
+            style={styles.image}
           />
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ position: 'absolute', top: 35, left: 5, }} activeOpacity={0.7} className={'p-2'}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
             <Ionicons
-              name={"arrow-back-outline"}
-              resizeMode="contain"
-              color={"#ffffff"}
+              name="arrow-back-outline"
+              color="#ffffff"
               size={30}
-              style={{ padding: 3, backgroundColor: '#161622', borderRadius: 30, opacity: 0.7 }}
+              style={styles.backIcon}
             />
           </TouchableOpacity>
         </View>
 
-        <View style={{ borderTopLeftRadius: 20, borderTopRightRadius: 40 }} className="bg-white -mt-8 pt-4">
-          <View className="px-5 mb-2">
-            <View className="flex-row items-center space-x-1 mt-2">
-              <Text className="text-3xl font-bold">{garage.name} </Text>
-              <Text className="text-3xl font-bold">{garage.type} </Text>
-            </View>
-            <Text style={{ color:'#000000' }} className={'text-xl font-semibold mt-3'}>{garage.location}</Text>
+        <View style={styles.detailsContainer}>
+          <View style={styles.detailsHeader}>
+            <Text style={styles.garageName}>{garage?.Name || 'N/A'}</Text>
           </View>
-        </View>
 
-        <View className="flex-row items-center space-x-1 mt-2">
-          <TouchableOpacity style={styles.button1} onPress={() => handleCallPress(garage.contactNumber)}>
-            <Ionicons
-              name={"call"}
-              resizeMode="contain"
-              color={"#ffffff"}
-              size={30}
-              style={{ padding: 3, backgroundColor: '#1eb814', borderRadius: 30, opacity: 0.7 }}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button2} onPress={handleSharePress}>
-            <Ionicons
-              name={"share"}
-              resizeMode="contain"
-              color={"#ffffff"}
-              size={30}
-              style={{ padding: 3, backgroundColor: 'transparent', borderRadius: 30, opacity: 0.7 }}
-            />
-          </TouchableOpacity>
-        </View>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.callButton} onPress={() => handleCallPress(garage?.PhoneNumber)}>
+              <Ionicons name="call" color="#ffffff" size={30} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.shareButton} onPress={handleSharePress}>
+              <Ionicons name="share-social" color="#ffffff" size={30} />
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.divider}></View>
+          <View style={styles.divider}></View>
 
-        <View style={styles.card}>
           <View style={styles.infoContainer}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Name:</Text>
-              <Text style={styles.infoValue}>{garage.name}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Type:</Text>
-              <Text style={styles.infoValue}>{garage.type}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Location:</Text>
-              <Text style={styles.infoValue}>{garage.location}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Contact Number:</Text>
-              <Text style={styles.infoValue}>{garage.contactNumber}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Services Offered:</Text>
-              <Text style={styles.infoValue}>{garage.services}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Description:</Text>
-              <Text style={styles.infoValue}>{garage.description}</Text>
-            </View>
+            {[
+              { label: 'Name:', value: garage?.Name },
+              { label: 'Type:', value: garage?.UserType },
+              { label: 'Location:', value: garage?.Address },
+              { label: 'Contact Number:', value: garage?.PhoneNumber },
+              // { label: 'Services Offered:', value: garage?.services },
+              // { label: 'Description:', value: garage?.description },
+            ].map((item, index) => (
+              <View key={index} style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{item.label}</Text>
+                <Text style={styles.infoValue}>{item.value || 'N/A'}</Text>
+              </View>
+            ))}
           </View>
         </View>
-
       </ScrollView>
     </View>
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#000',
+  },
+  imageContainer: {
+    position: 'relative',
   },
   image: {
     width: '100%',
     height: 300,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 35,
+    left: 15,
+    backgroundColor: '#161622',
+    borderRadius: 15,
+    padding: 5,
+    opacity: 0.8,
+  },
+  backIcon: {
+    padding: 3,
+  },
+  detailsContainer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: '#fff',
+    marginTop: -10,
+    padding: 20,
+  },
+  detailsHeader: {
+    marginBottom: 10,
+  },
+  garageName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  garageType: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#555',
+    marginVertical: 5,
+  },
+  garageLocation: {
+    fontSize: 18,
+    color: '#777',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 15,
+  },
+  callButton: {
+    backgroundColor: '#1eb814',
+    borderRadius: 10,
+    padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
+    marginHorizontal: 5,
   },
-  infoContainer: {
-    padding: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 18,
-    marginBottom: 5,
-  },
-  button1: {
-    flex: 1,
-    backgroundColor: '#1eb814',
-    padding: 10,
-    width: 260,
-    alignItems: 'center',
-    borderRadius: 10,
-    margin: 7,
-  },
-  button2: {
+  shareButton: {
     backgroundColor: '#161622',
+    borderRadius: 10,
     padding: 10,
     alignItems: 'center',
-    borderRadius: 10,
-    margin: 10,
-  },
-  price: {
-    padding: 10,
+    justifyContent: 'center',
+    flex: 1,
+    marginHorizontal: 5,
   },
   divider: {
     height: 1,
     backgroundColor: '#e0e0e0',
     marginVertical: 10,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    margin: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
+  infoContainer: {
+    marginTop: 10,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
-    alignItems: 'flex-start'
+    marginBottom: 8,
   },
   infoLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
     color: '#333',
-    width: 190,
+    width: '40%',
   },
   infoValue: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 16,
     color: '#555',
-    textAlign: 'left',
-    flex: 1,
-  }
+    width: '60%',
+  },
 });

@@ -187,8 +187,8 @@ const Profile = () => {
                                         value={profileData[field]}
                                         onChange={handleChange}
                                     >
-                                        <option value="garage">Garage</option>
-                                        <option value="mechanics">Mechanics</option>
+                                        <option value="Garage">Garage</option>
+                                        <option value="Mechanics">Mechanics</option>
                                     </select>
                                 ) : (
                                     <input

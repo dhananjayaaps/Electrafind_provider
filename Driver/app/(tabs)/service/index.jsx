@@ -1,15 +1,15 @@
 import { Text, View, StyleSheet, ScrollView } from 'react-native';
-import React, { useContext, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import GarageHeader from '../../screens/service/Header';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GarageContext } from '../../Context/GarageContext';
-import GarageCard from '../../screens/service/GarageItem'; // Assuming you have a GarageItem component similar to VehicleCard
+import GarageCard from '../../screens/service/GarageItem';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import { API_URL } from "@env";
 
 export default function GarageScreen() {
-
-  const { garages } = useContext(GarageContext);
-  const [selectedCategory, setSelectedCategory] = useState('mechanic');
+  const [garages, setGarages] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('Garage');
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
 
@@ -23,40 +23,54 @@ export default function GarageScreen() {
   };
 
   const handleCardPress = (garage) => {
+    // console.log('Garage:', garage);
     navigation.navigate('Profile', { garage });
   };
 
-  const filteredGarages = garages.filter(garage =>
-    garage.type === selectedCategory &&
-    (garage.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      garage.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      garage.services.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredGarages = garages.filter((garage) =>
+    garage.UserType === selectedCategory &&
+    (garage.Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      garage.Address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      garage.PhoneNumber.includes(searchQuery))
   );
 
-  const recommendations = garages.filter(garage =>
-    garage.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    garage.services.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    const fetchGarages = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/users/garages`);
+        setGarages(response.data);
+        // console.log("Garages:", response.data);
+      } catch (error) {
+        console.error("Error fetching garages:", error);
+      }
+    };
+
+    fetchGarages();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-
         <View style={styles.headerContainer}>
-          <GarageHeader onCategoryChanged={handleCategoryChange} onSearch={handleSearch} recommendations={recommendations}/>
+          <GarageHeader
+            onCategoryChanged={handleCategoryChange}
+            onSearch={handleSearch}
+            recommendations={garages} // Recommendations can be adjusted
+          />
         </View>
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           {filteredGarages.length > 0 ? (
             filteredGarages.map((garage) => (
-              <GarageCard key={garage.id} garage={garage} onPress={handleCardPress} />
+              <GarageCard key={garage.UserID} garage={garage} onPress={handleCardPress} />
             ))
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No garages available in this category</Text>
+              <Text style={styles.emptyText}>
+                No garages available in this category
+              </Text>
             </View>
           )}
         </ScrollView>
-        
       </View>
     </SafeAreaView>
   );
