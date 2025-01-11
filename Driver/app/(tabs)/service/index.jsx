@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GarageCard from '../../screens/service/GarageItem';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
-import { API_URL } from "@env";
+import { API_URL } from '@env';
 
 export default function GarageScreen() {
   const [garages, setGarages] = useState([]);
@@ -23,25 +23,25 @@ export default function GarageScreen() {
   };
 
   const handleCardPress = (garage) => {
-    // console.log('Garage:', garage);
     navigation.navigate('Profile', { garage });
   };
 
-  const filteredGarages = garages.filter((garage) =>
-    garage.UserType === selectedCategory &&
-    (garage.Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      garage.Address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      garage.PhoneNumber.includes(searchQuery))
-  );
+  const filteredGarages = garages.filter((garage) => {
+    const matchesCategory = garage.UserType === selectedCategory;
+    const matchesSearchQuery =
+      garage.Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      garage.Address.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesCategory && matchesSearchQuery;
+  });
 
   useEffect(() => {
     const fetchGarages = async () => {
       try {
         const response = await axios.get(`${API_URL}/users/garages`);
         setGarages(response.data);
-        // console.log("Garages:", response.data);
       } catch (error) {
-        console.error("Error fetching garages:", error);
+        console.error('Error fetching garages:', error);
       }
     };
 
@@ -55,7 +55,7 @@ export default function GarageScreen() {
           <GarageHeader
             onCategoryChanged={handleCategoryChange}
             onSearch={handleSearch}
-            recommendations={garages} // Recommendations can be adjusted
+            recommendations={garages} // Pass garages for recommendations
           />
         </View>
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
@@ -66,7 +66,7 @@ export default function GarageScreen() {
           ) : (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                No garages available in this category
+                No garages or mechanics available for your search.
               </Text>
             </View>
           )}
@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
+    padding: 16,
   },
   emptyContainer: {
     flex: 1,
@@ -102,5 +103,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     color: '#666',
+    textAlign: 'center',
+    padding: 20,
   },
 });

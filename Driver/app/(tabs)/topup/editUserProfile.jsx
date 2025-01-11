@@ -1,36 +1,125 @@
-import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-expo';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity, Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
+
+const API_URL = 'http://your-api-url-here'; // Replace with your API URL
 
 export default function EditProfile({ navigation }) {
-  const { user } = useUser(); // Get user object
-  const [phone, setPhone] = useState(user.phoneNumbers && user.phoneNumbers.length > 0 ? user.phoneNumbers[0].phoneNumber : '');
-  const [address, setAddress] = useState(user.publicMetadata?.address || '');
-  const [vehicleNumber, setVehicleNumber] = useState(user.publicMetadata?.vehicleNumber || '');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [image, setImage] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
+
+  useEffect(() => {
+    // Fetch user profile data
+    const fetchUserProfile = async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        const response = await axios.get(`${API_URL}/users/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const userData = response.data;
+        setPhone(userData.PhoneNumber || '');
+        setAddress(userData.Address || '');
+        setVehicleNumber(userData.VehicleNumber || '');
+        setUploadedImageUrl(userData.ImageUrl || null);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        Alert.alert('Error', 'Failed to fetch user profile data.');
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const handleSave = async () => {
     try {
+      const token = await AsyncStorage.getItem('userToken');
+      const updateData = { PhoneNumber: phone, Address: address, VehicleNumber: vehicleNumber };
+
       // Update user profile
-      await user.update({
-        phoneNumbers: [{ phoneNumber: phone }],
-        publicMetadata: { address, vehicleNumber },
+      const response = await axios.put(`${API_URL}/users/profile`, updateData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      // Show success message
       Alert.alert('Profile Updated', 'Your profile has been updated successfully.');
-      
-      // Navigate back to the UserProfile screen
       navigation.goBack();
     } catch (error) {
-      // Show error message
-      Alert.alert('Update Failed', 'There was an error updating your profile.');
       console.error('Error updating profile:', error);
+      Alert.alert('Update Failed', 'There was an error updating your profile.');
+    }
+  };
+
+  const handleImageUpload = async () => {
+    try {
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.cancelled) {
+        setImage(result.uri);
+
+        // Create FormData for the image
+        const formData = new FormData();
+        formData.append('file', {
+          uri: result.uri,
+          type: 'image/jpeg', // Adjust type as needed
+          name: 'profile_image.jpg',
+        });
+
+        // Upload image to the server
+        const token = await AsyncStorage.getItem('userToken');
+        const imageUploadResponse = await fetch(`${API_URL}/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (!imageUploadResponse.ok) {
+          const errorData = await imageUploadResponse.json();
+          Alert.alert('Error', errorData.message || 'Failed to upload image.');
+          return;
+        }
+
+        const imageUploadData = await imageUploadResponse.json();
+        setUploadedImageUrl(imageUploadData.url);
+        Alert.alert('Success', 'Image uploaded successfully.');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Upload Failed', 'There was an error uploading the image.');
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Edit Profile</Text>
+
+      {uploadedImageUrl ? (
+        <Image source={{ uri: uploadedImageUrl }} style={styles.profileImage} />
+      ) : (
+        <View style={styles.placeholderImage} />
+      )}
+
+      <TouchableOpacity style={styles.uploadButton} onPress={handleImageUpload}>
+        <Text style={styles.uploadButtonText}>Upload Image</Text>
+      </TouchableOpacity>
+
       <TextInput
         style={styles.input}
         placeholder="Phone"
@@ -91,5 +180,29 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 20,
+  },
+  placeholderImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#cccccc',
+    marginBottom: 20,
+  },
+  uploadButton: {
+    backgroundColor: '#007BFF',
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  uploadButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
   },
 });

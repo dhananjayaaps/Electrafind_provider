@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
+import { API_URL } from '@env';
 
 const UserProfile = () => {
   const navigation = useNavigation();
-  const [firstName, setFirstName] = useState('Chamudrasri');
-  const [lastName, setLastName] = useState('Sriwarnasinghe');
-  const [contactNumber, setContactNumber] = useState('0768858819');
-  const [country, setCountry] = useState('Sri Lanka');
-  const [company, setCompany] = useState('ElectraFind');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [userType, setUserType] = useState('');
   const [profileImage, setProfileImage] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchUserDetails();
+  }, []);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -24,101 +40,174 @@ const UserProfile = () => {
     });
 
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+      const imageUri = result.assets[0].uri;
+      uploadImage(imageUri);
     }
   };
 
-  // const handleUpdate = () => {
-  //   Alert.alert('Profile Updated', 'Your profile has been successfully updated.');
-  // };
+  const uploadImage = async (imageUri) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', {
+        uri: imageUri,
+        type: 'image/jpeg', // Adjust type if needed
+        name: 'profile_image.jpg',
+      });
 
-  const handleUpdate = () => {
-    navigation.navigate('index', {
-      updatedFirstName: firstName,
-      updatedLastName: lastName,
-      updatedProfileImage: profileImage
-    });
+      const token = await AsyncStorage.getItem('userToken');
+      const imageUploadResponse = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!imageUploadResponse.ok) {
+        const errorData = await imageUploadResponse.json();
+        Alert.alert('Error', errorData.message || 'Failed to upload image.');
+        return;
+      }
+
+      const imageUploadData = await imageUploadResponse.json();
+      const uploadedImageUrl = imageUploadData.url;
+      setProfileImage(uploadedImageUrl);
+      Alert.alert('Success', 'Image uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image.');
+    }
   };
+
+  const fetchUserDetails = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('userToken');
+      const response = await axios.get(`${API_URL}/users/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = response.data;
+      setName(data.Name || '');
+      setEmail(data.Email || '');
+      setPhoneNumber(data.PhoneNumber || '');
+      setAddress(data.Address || '');
+      setUserType(data.UserType || '');
+      setProfileImage(
+        data.ImageUrl ||
+          'https://cdn-icons-png.flaticon.com/512/149/149071.png'
+      );
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      Alert.alert('Error', 'Failed to fetch user details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('userToken');
+      const updateData = {
+        Name: name,
+        Email: email,
+        PhoneNumber: phoneNumber,
+        Address: address,
+        ImageUrl: profileImage,
+      };
+
+      const response = await axios.put(`${API_URL}/users/`, updateData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        Alert.alert('Success', 'Profile updated successfully!');
+        navigation.navigate('index');
+      } else {
+        Alert.alert('Error', 'Failed to update profile.');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#000" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView>
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color="black" />
-      </TouchableOpacity>
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
 
-      <Text style={styles.title}>Edit Profile</Text>
+        <Text style={styles.title}>Edit Profile</Text>
 
-      <View style={{flexDirection: "row", justifyContent: "center", marginBottom: 30 }}>
-          <View style={{ position: "relative" }}>
-            <Image
-              source={{
-               uri: profileImage || "https://res.cloudinary.com/dshp9jnuy/image/upload/v1665822253/avatars/nrxsg8sd9iy10bbsoenn.png"
-              }}
-              style={{ width: 90, height: 90, borderRadius: 100 }}
-            />
-
-            <TouchableOpacity
-                    style={{
-                      position: "absolute",
-                      bottom: 5,
-                      right: 0,
-                      width: 30,
-                      height: 30,
-                      backgroundColor: "#D3EDDE",
-                      borderRadius: 100,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    onPress={pickImage}
-                  >
-                    <Ionicons name="camera-outline" size={25} />
-            </TouchableOpacity>
-
-          </View>
+        <View style={styles.imageContainer}>
+          <Image
+            source={{
+              uri:
+                profileImage ||
+                'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+            }}
+            style={styles.profileImage}
+          />
+          <TouchableOpacity style={styles.cameraButton} onPress={pickImage}>
+            <Ionicons name="camera-outline" size={20} />
+          </TouchableOpacity>
         </View>
 
-      <Text style={styles.label}>First Name</Text>
-      <TextInput
-        style={styles.input}
-        value={firstName}
-        onChangeText={setFirstName}
-      />
+        <Text style={styles.label}>Name</Text>
+        <TextInput
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+        />
 
-      <Text style={styles.label}>Last Name</Text>
-      <TextInput
-        style={styles.input}
-        value={lastName}
-        onChangeText={setLastName}
-      />
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={styles.input}
+          value={email}
+          keyboardType="email-address"
+          onChangeText={setEmail}
+        />
 
-      <Text style={styles.label}>Contact Number</Text>
-      <TextInput
-        style={styles.input}
-        value={contactNumber}
-        keyboardType="phone-pad"
-        onChangeText={setContactNumber}
-      />
+        <Text style={styles.label}>Phone Number</Text>
+        <TextInput
+          style={styles.input}
+          value={phoneNumber}
+          keyboardType="phone-pad"
+          onChangeText={setPhoneNumber}
+        />
 
-      <Text style={styles.label}>Country</Text>
-      <TextInput
-        style={styles.input}
-        value={country}
-        onChangeText={setCountry}
-      />
+        <Text style={styles.label}>Address</Text>
+        <TextInput
+          style={styles.input}
+          value={address}
+          onChangeText={setAddress}
+        />
 
-      <Text style={styles.label}>Company</Text>
-      <TextInput
-        style={styles.input}
-        value={company}
-        onChangeText={setCompany}
-      />
-
-      <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
-        <Text style={styles.updateButtonText}>Update</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
+          <Text style={styles.updateButtonText}>Update</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 };
@@ -129,7 +218,6 @@ const styles = StyleSheet.create({
     padding: 25,
     marginTop: 30,
   },
-
   backButton: {
     position: 'absolute',
     top: 45,
@@ -151,17 +239,13 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
   },
-  placeholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#e1e1e1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 40,
-    color: '#fff',
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 10,
+    backgroundColor: '#D3EDDE',
+    borderRadius: 15,
+    padding: 5,
   },
   label: {
     fontSize: 16,
@@ -176,12 +260,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     backgroundColor: '#D3EDDE',
   },
-  picker: {
-    height: 100,
-    marginBottom: 100,
-  },
   updateButton: {
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
     padding: 15,
     borderRadius: 15,
     alignItems: 'center',
@@ -189,6 +269,11 @@ const styles = StyleSheet.create({
   updateButtonText: {
     color: '#fff',
     fontSize: 18,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

@@ -15,9 +15,9 @@ export default function GarageCard({ garage, onPress }) {
         />
         <View style={styles.infoContainer}>
           <Text style={styles.title}>{garage.Name}</Text>
-          <Text style={styles.subtitle}>{garage.UserType}</Text>
+          {/* <Text style={styles.subtitle}>{garage.UserType}</Text> */}
           <Text style={styles.subtitle}>{garage.Address}</Text>
-          <Text style={styles.subtitle}>{garage.PhoneNumber}</Text>
+          {/* <Text style={styles.subtitle}>{garage.PhoneNumber}</Text> */}
         </View>
       </LinearGradient>
     </TouchableOpacity>
