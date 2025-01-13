@@ -21,7 +21,7 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
     ChargeType: {
-      type: DataTypes.ENUM('Level 1', 'Level 2', 'Level 3'),
+      type: DataTypes.STRING,
       allowNull: true,
     },
     TotalTime: {

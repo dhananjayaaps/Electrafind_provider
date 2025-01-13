@@ -17,16 +17,43 @@ export default function SessionDetails({ route, navigation }) {
   const [fixedChargingTime, setFixedChargingTime] = useState('');
   const [chargingPrices, setChargingPrices] = useState(null);
   const [sessionDetails, setSessionDetails] = useState(null);
+  const [startTime, setStartTime] = useState(session.startTime);
 
   let timer;
 
+  const fetchSessionDetails = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const response = await fetch(`${API_URL}/sessions/${sessionId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch session details.');
+      }
+  
+      const data = await response.json();
+      if (data) {
+        // Set the detailed session information
+        setSessionDetails(data);
+      } else {
+        Alert.alert('Error', 'Failed to fetch session details.');
+      }
+    } catch (error) {
+      console.error('Error fetching session details:', error);
+      Alert.alert('Error', 'Failed to fetch session details.');
+    }
+  };
 
   useEffect(() => {
     // Fetch charging types and prices from the API
     console.log(session);
 
     if (status === 'Ongoing') {
-      setSelectedTime(session.startTime);
+      setSelectedTime(startTime);
       setFixedChargingTime(session.fixedChargingTime);
     }
 
@@ -92,12 +119,14 @@ export default function SessionDetails({ route, navigation }) {
       }
   
       const data = await response.json();
+
       if (data.success) {
-        setStatus(data.session.status); // Set status to 'Ongoing'
+        setStatus(data.session.status);
         setRemainingTime(data.session.totalTime);
         setElapsedTime(0);
         setCost(0);
-        initializeSession(); // Start the timer immediately
+        setStartTime(new Date());
+        initializeSession();
         Alert.alert('Session Started', `Charging session started with ${chargeType}.`);
       } else {
         Alert.alert('Error', 'Failed to start the session.');
@@ -113,36 +142,37 @@ export default function SessionDetails({ route, navigation }) {
     console.log('selectedTime:', selectedTime);
   }, [selectedTime]);
 
-  useEffect(() => {
-    const initializeSession = () => {
-      if (status === 'Ongoing') {
-        try {
-          timer = setInterval(() => {
-            const currentTime = new Date();
-            const sessionStartTime = new Date(session.startTime);
-  
-            const elapsed = Math.floor((currentTime - sessionStartTime) / 1000); // Time in seconds
-            const totalTime = fixedChargingTime * 60; // Convert minutes to seconds
-            const remaining = Math.max(totalTime - elapsed, 0);
-  
-            setElapsedTime(elapsed);
-            setRemainingTime(remaining);
-  
-            const price = chargingPrices?.[chargeType]?.price || session.cost || 0;
-            const exceededTime = Math.max(elapsed - totalTime, 0);
-  
-            // Update cost dynamically
-            if (remaining > 0) {
-              setCost((elapsed / 60) * price);
-            } else {
-              setCost((totalTime / 60) * price + (exceededTime / 60) * price);
-            }
-          }, 1000);
-        } catch (error) {
-          console.error('Error initializing session:', error);
-        }
+  const initializeSession = () => {
+    if (status === 'Ongoing') {
+      try {
+        timer = setInterval(() => {
+          const currentTime = new Date();
+          const sessionStartTime = new Date(startTime);
+
+          const elapsed = Math.floor((currentTime - sessionStartTime) / 1000); // Time in seconds
+          const totalTime = fixedChargingTime * 60; // Convert minutes to seconds
+          const remaining = Math.max(totalTime - elapsed, 0);
+
+          setElapsedTime(elapsed);
+          setRemainingTime(remaining);
+
+          const price = chargingPrices?.[chargeType]?.price || session.cost || 0;
+          const exceededTime = Math.max(elapsed - totalTime, 0);
+
+          // Update cost dynamically
+          if (remaining > 0) {
+            setCost((elapsed / 60) * price);
+          } else {
+            setCost((totalTime / 60) * price + (exceededTime / 60) * price);
+          }
+        }, 1000);
+      } catch (error) {
+        console.error('Error initializing session:', error);
       }
-    };
+    }
+  };
+
+  useEffect(() => {
   
     initializeSession();
   
@@ -219,33 +249,6 @@ export default function SessionDetails({ route, navigation }) {
       },
     ]);
   };
-
-  const fetchSessionDetails = async () => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      const response = await fetch(`${API_URL}/sessions/${sessionId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to fetch session details.');
-      }
-  
-      const data = await response.json();
-      if (data) {
-        // Set the detailed session information
-        setSessionDetails(data);
-      } else {
-        Alert.alert('Error', 'Failed to fetch session details.');
-      }
-    } catch (error) {
-      console.error('Error fetching session details:', error);
-      Alert.alert('Error', 'Failed to fetch session details.');
-    }
-  };
   
   const handleCloseSession = () => {
     Alert.alert('Close Session', 'Are you sure you want to close the session?', [
@@ -285,6 +288,24 @@ export default function SessionDetails({ route, navigation }) {
       },
     ]);
   };
+
+  const calculateTotalTime = (startTime, endTime) => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+  
+    // Calculate the difference in milliseconds
+    const diff = Math.max(0, end - start);
+  
+    // Convert to hours, minutes, and seconds
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  
+    // Format the duration
+    const formattedTime = `${hours}h ${minutes}m ${seconds}s`;
+    return formattedTime;
+  };
+  
   
   
   return (
@@ -300,27 +321,29 @@ export default function SessionDetails({ route, navigation }) {
         </Text>
 
         {status === 'Completed' && sessionDetails && (
-        <View>
-          <Text style={styles.infoText}>
-            <Text style={styles.bold}>Session ID:</Text> {sessionDetails.SessionID}
-          </Text>
-          <Text style={styles.infoText}>
-            <Text style={styles.bold}>Start Time:</Text> {new Date(sessionDetails.StartTime).toLocaleString()}
-          </Text>
-          <Text style={styles.infoText}>
-            <Text style={styles.bold}>End Time:</Text> {new Date(sessionDetails.EndTime).toLocaleString()}
-          </Text>
-          <Text style={styles.infoText}>
-            <Text style={styles.bold}>Charge Type:</Text> {sessionDetails.ChargeType}
-          </Text>
-          <Text style={styles.infoText}>
-            <Text style={styles.bold}>Total Time:</Text> {Math.floor(sessionDetails.TotalTime / 60)} minutes
-          </Text>
-          <Text style={styles.infoText}>
-            <Text style={styles.bold}>Cost:</Text> ${sessionDetails.Cost.toFixed(2)}
-          </Text>
-        </View>
-      )}
+          <View>
+            <Text style={styles.infoText}>
+              <Text style={styles.bold}>Session ID:</Text> {sessionDetails.SessionID}
+            </Text>
+            <Text style={styles.infoText}>
+              <Text style={styles.bold}>Start Time:</Text> {new Date(sessionDetails.StartTime).toLocaleString()}
+            </Text>
+            <Text style={styles.infoText}>
+              <Text style={styles.bold}>End Time:</Text> {new Date(sessionDetails.EndTime).toLocaleString()}
+            </Text>
+            <Text style={styles.infoText}>
+              <Text style={styles.bold}>Charge Type:</Text> {sessionDetails.ChargeType}
+            </Text>
+            <Text style={styles.infoText}>
+              {/* Calculate total time */}
+              <Text style={styles.bold}>Total Time:</Text> {calculateTotalTime(sessionDetails.StartTime, sessionDetails.EndTime)}
+            </Text>
+            <Text style={styles.infoText}>
+              <Text style={styles.bold}>Cost:</Text> ${sessionDetails.Cost.toFixed(2)}
+            </Text>
+          </View>
+        )}
+
   
         {status === 'New' && (
           <>

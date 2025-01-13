@@ -46,7 +46,9 @@ export default function ChargingSessions() {
     const loadSessions = async () => {
       try {
         const response = await fetchSessions();
-        setSessions(response);
+        // setSessions(response);
+        // reverse the sessions
+        setSessions(response.reverse());
       } catch (error) {
         console.error('Error fetching sessions:', error);
       } finally {

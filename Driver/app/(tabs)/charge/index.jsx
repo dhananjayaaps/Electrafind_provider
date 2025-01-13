@@ -42,7 +42,8 @@ export default function ChargeScreen({route}) {
 
       const data = await response.json();
       // console.log('Fetched sessions:', data);
-      return data;
+      const reveresed = data.reverse();
+      return reveresed;
     } catch (error) {
       // console.error('Error fetching sessions:', error);
       return [];

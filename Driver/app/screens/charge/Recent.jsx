@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Button, Act
 import { Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Camera, useCameraPermissions, CameraView } from 'expo-camera';
 import { io } from 'socket.io-client';
 import { SOCKET_URL } from '@env';
@@ -25,7 +26,7 @@ export default function Recent() {
   useEffect(() => {
     const fetchUserID = async () => {
       try {
-        const userID = await AsyncStorage.getItem('userID');
+        const userID = await AsyncStorage.getItem('userId');
         setUserID(userID);
       } catch (error) {
         console.error('Error fetching user ID:', error);
@@ -65,7 +66,7 @@ export default function Recent() {
       setLoading(false); // Stop loading spinner
       console.log(response);
       Alert.alert('Success', 'Session Started successfully!');
-      navigation.navigate('options')
+      // navigation.navigate('options')
     });
 
     return () => {
@@ -104,7 +105,7 @@ export default function Recent() {
       const dataToSend = {
         clientName: 'Sineth',
         qrCode: qrCode,
-        clientId: 1,
+        clientId: userID,
       };
       socket.emit('scan-qr', dataToSend);
       Alert.alert('Data Sent', JSON.stringify(dataToSend));

@@ -48,7 +48,10 @@ const TopupScreen = () => {
       // await axios.post("https://your-api-url.com/logout"); // Replace with your endpoint
       // clear all of the user data from AsyncStorage
       await AsyncStorage.clear();
-      navigation.navigate("sign-in");
+      // navigation.navigate("sign-in");
+      Alert.alert("Logout Successful", "You have been logged out.", [
+        { text: "OK", onPress: () => navigation.replace("sign-in") },
+      ]);
     } catch (error) {
       console.error("Error during logout:", error);
     }

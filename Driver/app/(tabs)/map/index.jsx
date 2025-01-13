@@ -71,7 +71,7 @@ export default function MapScreen({ navigation }) {
     try {
       const response = await axios.get(`${API_URL}/stations`);
       setPlaceList(response.data);
-      setFilteredPlaces(response.data);
+      setFilteredPlaces(response.data); // Ensure filteredPlaces is initially set
     } catch (error) {
       console.error('Error fetching stations:', error);
     }
@@ -139,7 +139,7 @@ export default function MapScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  if (!userLocation) return "loading";
+  if (!userLocation || !filteredPlaces.length) return <Text>Loading...</Text>;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -159,17 +159,6 @@ export default function MapScreen({ navigation }) {
           showsUserLocation={true}
           followsUserLocation={false}
         >
-          {userLocation && (
-            <Marker
-              coordinate={{
-                latitude: userLocation.latitude,
-                longitude: userLocation.longitude,
-              }}
-              title="Your Location"
-              pinColor="blue"
-            />
-          )}
-
           {filteredPlaces.map((place) => (
             <Marker
               key={place.StationID}

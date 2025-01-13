@@ -120,10 +120,12 @@ exports.startSession = async (req, res) => {
     console.log('Request body:', req.body);
     const { sessionID, unitPrice, chargeType, fixedChargingTime } = req.body;
 
+    // Validate input
     if (!sessionID || !unitPrice || !chargeType || isNaN(fixedChargingTime) || fixedChargingTime <= 0) {
       return res.status(400).json({ message: 'Invalid input. Please provide all required fields.' });
     }
 
+    // Fetch session
     const session = await chargingSession.findOne({ where: { SessionID: sessionID } });
 
     if (!session) {
@@ -134,22 +136,29 @@ exports.startSession = async (req, res) => {
       return res.status(400).json({ message: 'Cannot start session. Invalid status.' });
     }
 
-    if (session.chargeType === 'level1'){
-      session.chargeType = 'Level 1';
-    } else if (session.chargeType === 'level2'){
-      session.chargeType = 'Level 2';
-    } else if (session.chargeType === 'level3'){
-      session.chargeType = 'Level 3';
-    }
+    // Update session fields
+    session.ChargeType = 
+      chargeType.toLowerCase() === 'level1' ? 'Level 1' :
+      chargeType.toLowerCase() === 'level2' ? 'Level 2' :
+      chargeType.toLowerCase() === 'level3' ? 'Level 3' :
+      null;
 
+    if (!session.ChargeType) {
+      return res.status(400).json({ message: 'Invalid charge type provided.' });
+    }
+    console.log('Session:', session);
     session.StartTime = new Date();
     session.Status = 'Ongoing';
+    
     session.Cost = parseFloat(unitPrice);
-    // session.ChargeType = chargeType;
-    session.fixedChargingTime = parseInt(fixedChargingTime);
-    session.TotalTime = fixedChargingTime * 60; // Convert minutes to seconds
+    session.fixedChargingTime = parseInt(fixedChargingTime, 10);
+    session.TotalTime = session.fixedChargingTime * 60; // Convert minutes to seconds
+
+    console.log('Session:', session);
+    // Save the updated session
     await session.save();
 
+    // Send response
     res.status(200).json({
       message: 'Charging session started successfully.',
       success: true,
@@ -163,9 +172,10 @@ exports.startSession = async (req, res) => {
     });
   } catch (error) {
     console.error('Error starting session:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
 
 // Stop a charging session
 exports.stopSession = async (req, res) => {

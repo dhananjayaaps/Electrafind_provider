@@ -33,8 +33,8 @@ function initWebSocket(server) {
     // Handle QR Code Scan by Client
     socket.on("scan-qr", async ({ qrCode, clientId, clientName }) => {
       console.log(`Client ${clientId} scanned QR code: ${qrCode}`);
-      console.log('Clientes:', clients);
-      console.log('Provider:', provider);
+      // console.log('Clientes:', clients);
+      // console.log('Provider:', provider);
       try {
         const existingStation = await chargingStation.findOne({ where: { VerificationCode: qrCode } });
     
@@ -63,7 +63,7 @@ function initWebSocket(server) {
             providerID: providerId,
           });
 
-          console.log("New session created:", newSession);
+          // console.log("New session created:", newSession);
     
           // Send session request to provider
           providerClient.socket.emit("session-request", { sessionId, clientId, clientName, sessionNumber: newSession.SessionID });
@@ -104,19 +104,20 @@ function initWebSocket(server) {
 
             // Notify the client and provider about the session start
             if (clientSocket) {
+            console.log("Client socket found:");
             clientSocket.socket.emit("session-start", { sessionId, message: "Your charging session has started." });
             }
     
-            console.log("Session status updated to 'New' and session started:", session);
+            // console.log("Session status updated to 'New' and session started:", session);
         } else {
             // Decline the session and delete it from the sessions map
             const deletedSession = chargingSession.destroy({ where: { SessionID: sessionNumber } });
             socket.emit("session-error", { message: "Session request declined." });
             // console.log("Session User ID:", session.userId, "\n\n");
-            // console.log("Clients Map:", clients, "\n\n");
+            console.log("Clients Map:", clients, "\n\n");
             if (clientSocket) {
               clientSocket.socket.emit("session-error", { sessionId, message: "Your charging session has started." });
-              console.log("Send the cancellation", clientSocket.socket);
+              // console.log("Send the cancellation", clientSocket.socket);
             }
         }
         } catch (error) {
