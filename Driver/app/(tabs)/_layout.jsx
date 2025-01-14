@@ -79,8 +79,6 @@ export default function TabsLayout() {
         }}
       >
 
-        
-
         <Tab.Screen
           name="_layout"
           component={MapLayout}

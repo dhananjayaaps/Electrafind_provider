@@ -12,7 +12,8 @@ import { useNavigation } from '@react-navigation/native';
 import axios from "axios"; // For API calls
 import { API_URL } from "@env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import RNRestart from 'react-native-restart';
+import {RNRestart} from 'react-native-restart';
+import { Alert } from "react-native";
 
 const TopupScreen = () => {
   const navigation = useNavigation();
@@ -43,7 +44,6 @@ const TopupScreen = () => {
     }
   };
 
-  // Logout handler
   const logoutHandler = async () => {
     try {
       // Clear user data from AsyncStorage
@@ -54,8 +54,11 @@ const TopupScreen = () => {
         {
           text: "OK",
           onPress: () => {
-            // Restart the app
-            RNRestart.Restart();
+            // Reset navigation stack and navigate to "sign-in"
+            navigation.reset({
+              index: 0, // Set the initial route index
+              routes: [{ name: "AuthLayout" }], // Replace the stack with the "sign-in" route
+            });
           },
         },
       ]);

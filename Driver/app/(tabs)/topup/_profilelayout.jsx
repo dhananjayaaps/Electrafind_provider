@@ -42,11 +42,6 @@ function ProfileLayout() {
 
         <Stack.Screen name="editCarProfile" component={EditCarProfile} options={{
             headerShown: false}}/>
-
-        <Stack.Screen
-            name="sign-in"
-            component={SignIn}
-          />
           
       </Stack.Navigator>
 
