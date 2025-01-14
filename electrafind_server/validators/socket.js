@@ -32,7 +32,7 @@ function initWebSocket(server) {
 
     // Handle QR Code Scan by Client
     socket.on("scan-qr", async ({ qrCode, clientId, clientName }) => {
-      console.log(`Client ${clientId} scanned QR code: ${qrCode}`);
+      console.log(`Client ${clientId} scanned QR code: ${qrCode} ${clientName}`);
       // console.log('Clientes:', clients);
       // console.log('Provider:', provider);
       try {

@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import axios from "axios"; // For API calls
 import { API_URL } from "@env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import RNRestart from 'react-native-restart';
 
 const TopupScreen = () => {
   const navigation = useNavigation();
@@ -45,17 +46,24 @@ const TopupScreen = () => {
   // Logout handler
   const logoutHandler = async () => {
     try {
-      // await axios.post("https://your-api-url.com/logout"); // Replace with your endpoint
-      // clear all of the user data from AsyncStorage
+      // Clear user data from AsyncStorage
       await AsyncStorage.clear();
-      // navigation.navigate("sign-in");
+  
+      // Notify the user of successful logout
       Alert.alert("Logout Successful", "You have been logged out.", [
-        { text: "OK", onPress: () => navigation.replace("sign-in") },
+        {
+          text: "OK",
+          onPress: () => {
+            // Restart the app
+            RNRestart.Restart();
+          },
+        },
       ]);
     } catch (error) {
       console.error("Error during logout:", error);
     }
   };
+  
 
   useEffect(() => {
     fetchUserDetails();

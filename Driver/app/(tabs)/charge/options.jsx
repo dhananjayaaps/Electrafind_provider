@@ -25,6 +25,7 @@ export default function SessionDetails({ route, navigation }) {
   useEffect(() => {
     const interval = setInterval(() => {
       fetchSessionDetails();
+      // initializeSession();
     }, 1000);
 
     return () => clearInterval(interval);
@@ -42,7 +43,10 @@ export default function SessionDetails({ route, navigation }) {
       try {
         timer = setInterval(() => {
           const currentTime = new Date();
-          const sessionStartTime = new Date(sessionDetails.startTime);
+          if (!sessionDetails) {
+            return;
+          }
+          const sessionStartTime = new Date(sessionDetails.StartTime);
 
           const elapsed = Math.floor((currentTime - sessionStartTime) / 1000); // Time in seconds
           const totalTime = fixedChargingTime * 60;
@@ -52,7 +56,8 @@ export default function SessionDetails({ route, navigation }) {
           setRemainingTime(remaining);
           // console.log('Elapsed:', elapsed, 'Remaining:', remaining);
 
-          const price = chargingPrices?.[chargeType]?.price || session.cost || 0;
+          // const price = chargingPrices?.[chargeType]?.price || session.cost || 0;
+          const price = sessionDetails.Cost;
           const exceededTime = Math.max(elapsed - totalTime, 0);
 
           // Update cost dynamically
@@ -75,7 +80,7 @@ export default function SessionDetails({ route, navigation }) {
   
     // Cleanup interval on unmount
     return () => clearInterval(timer);
-  }, [status, session.startTime, session.ChargeType, chargingPrices, session.totalTime, session.fixedChargingTime, timer]);  
+  }, [sessionDetails, timer]);  
   
 
   const getProgress = () => {
@@ -119,6 +124,11 @@ export default function SessionDetails({ route, navigation }) {
         setFixedChargingTime(data.fixedChargingTime);
         setSelectedTime(data.StartTime);
         setStatus(data.Status);
+        // if data.cost found set it, else 0
+        // if (data.Cost) {
+        //   setCost(data.Cost);
+        // } 
+        // setCost(data.Cost)
 
         if (data.Status === 'Closed' ) {
           setStatus('Completed');
