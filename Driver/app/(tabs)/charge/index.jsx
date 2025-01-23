@@ -34,7 +34,7 @@ export default function ChargeScreen({route}) {
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log('Response:', response.data);
+      console.log('Response:', response);
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -107,17 +107,6 @@ export default function ChargeScreen({route}) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const clearHistory = async () => {
-    try {
-      await AsyncStorage.removeItem('transactions');
-      setTransactions([]);
-      Alert.alert('Success', 'Transaction history has been cleared.');
-    } catch (error) {
-      console.error('Failed to clear history:', error);
-      Alert.alert('Error', 'Failed to clear transaction history.');
-    }
-  };
-
   const renderSession = ({ item }) => (
     <TouchableOpacity
       style={styles2.sessionCard}
@@ -175,14 +164,13 @@ export default function ChargeScreen({route}) {
           ) : (
             <View style={styles.noSessionsContainer}>
               <Text style={styles2.noSessionsText}>No charging sessions found.</Text>
-              // make a button for reload the sessions
               <TouchableOpacity style={styles.button} onPress={fetchSessions}>
                 <Text style={styles2.buttonText}>Reload</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
-      );
+      );      
     }
     return null;
   };

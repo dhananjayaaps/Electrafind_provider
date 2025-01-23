@@ -20,6 +20,7 @@ export default function Recent() {
   const [loading, setLoading] = useState(false);
   const socketRef = useRef(null);
   const [userID, setUserID] = useState();
+  const [clientName, setClientName] = useState('');
 
   const navigation = useNavigation();
 
@@ -28,6 +29,8 @@ export default function Recent() {
       try {
         const userID = await AsyncStorage.getItem('userId');
         setUserID(userID);
+        const name = await AsyncStorage.getItem('name');
+        setClientName(name);
       } catch (error) {
         console.error('Error fetching user ID:', error);
       }
@@ -101,9 +104,10 @@ export default function Recent() {
   };
 
   const submitData = (qrCode) => {
+
     if (socket) {
       const dataToSend = {
-        clientName: 'Sineth',
+        clientName: clientName,
         qrCode: qrCode,
         clientId: userID,
       };
